@@ -6,7 +6,7 @@
   "main": "electron/main.cjs",
   "scripts": {
     "build": "node scripts/build-web.mjs",
-    "build:windows": "npm run build && electron-builder --win nsis",
+    "build:windows": "npm run build && electron-builder --win nsis --publish never",
     "android:sync": "npm run build && cap sync android"
   },
   "dependencies": {

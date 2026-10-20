@@ -14,7 +14,7 @@ Después abre [http://localhost:8000](http://localhost:8000) en el navegador. Ch
 
 ## Instaladores desde GitHub
 
-Los flujos de GitHub Actions generan instaladores para Windows y Android cuando se actualizan las ramas `main` o `python`, cuando se publica una etiqueta `v*`, o al iniciar manualmente el flujo desde la pestaña **Actions**:
+Los flujos de GitHub Actions generan instaladores para Windows y Android cuando se actualiza la rama `main` o `python`, cuando se publica una etiqueta `v*`, o al iniciar manualmente el flujo desde la pestaña **Actions**:
 
 1. Abre una ejecución completada del flujo correspondiente.
 2. Descarga el artefacto en **Artifacts**: `chiaplast-windows-installer` para Windows o `chiaplast-android-debug-apk` para Android.
