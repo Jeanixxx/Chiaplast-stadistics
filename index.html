@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Chiaplast · Gestión integral</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="bootLoader"><div class="spinner"></div><div class="muted">Cargando Chiaplast…</div></div>
+<div class="app">
+<aside class="sidebar" id="sidebar">
+  <div class="brand">Chiaplast <small>v5.2 · Control de mantenimiento industrial</small></div>
+  <nav class="nav" id="mainNav">
+    <button class="active" data-view="dashboard">▦ Dashboard</button>
+
+    <div class="nav-group open" data-group="maquinas">
+      <button type="button" class="nav-group-toggle" onclick="toggleNavGroup(this)">⚙️ Máquinas <span>▾</span></button>
+      <div class="nav-group-body">
+        <button data-view="semanaPlanta">📅 Semana de la planta</button>
+        <button data-view="fichaMaquina">📋 Ficha de máquina</button>
+        <button data-view="preventivo">▣ Preventivos</button>
+        <button data-view="predictivo">◉ Predictivo</button>
+        <button data-view="correctivo">⚠ Correctivos / OT</button>
+        <button data-view="eventos">↯ Fallas y eventos</button>
+        <button data-view="tarjetas">🏭 Base de máquinas</button>
+        <button data-view="refacciones">▱ Refacciones</button>
+      </div>
+    </div>
+
+    <div class="nav-group open" data-group="rrhh">
+      <button type="button" class="nav-group-toggle" onclick="toggleNavGroup(this)">👥 Recurso humano <span>▾</span></button>
+      <div class="nav-group-body">
+        <button data-view="equipo">♙ Equipo de mantenimiento</button>
+        <button data-view="comidas">🍽 Rol de comidas</button>
+        <button data-view="backlog">📦 Backlog (SMRP 5.4.9)</button>
+      </div>
+    </div>
+
+    <div class="nav-group open" data-group="reportes">
+      <button type="button" class="nav-group-toggle" onclick="toggleNavGroup(this)">📁 Reportes e historial <span>▾</span></button>
+      <div class="nav-group-body">
+        <button data-view="historial">◷ Historial</button>
+        <button data-view="importar">⇩ Reporte diario</button>
+        <button data-view="mensual">📅 Reporte mensual</button>
+        <button data-view="informes">📄 Informes PDF</button>
+      </div>
+    </div>
+
+    <div class="nav-group open" data-group="finanzas">
+      <button type="button" class="nav-group-toggle" onclick="toggleNavGroup(this)">💰 Finanzas <span>▾</span></button>
+      <div class="nav-group-body">
+        <button data-view="tableroCompra">🛒 Tablero de compra</button>
+        <button data-view="financiero">💰 Justificación de compras</button>
+        <button data-view="negligencia">🧯 Gestión financiera</button>
+      </div>
+    </div>
+  </nav>
+  <div class="sidebar-footer">
+    <button class="btn" style="width:100%;padding:7px;font-size:11px" onclick="toggleDarkMode()" id="darkModeBtn">🌙 Modo oscuro</button>
+    <span>Datos locales • localStorage</span>
+  </div>
+  <div style="position:fixed;bottom:6px;right:10px;font-size:9px;color:#c7cfdb;pointer-events:none;z-index:1;user-select:none">Hecho por Hugo Jean Rosas Gómez</div>
+</aside>
+<div id="sidebarBackdrop" onclick="closeMobileMenu()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:25"></div>
+
+<main class="main">
+<div class="topbar">
+  <div class="title" style="display:flex;gap:10px;align-items:flex-start">
+    <button class="btn" id="menuToggle" onclick="toggleMobileMenu()" title="Menú">☰</button>
+    <div>
+      <h1 id="pageTitle">Dashboard</h1>
+      <p id="pageSubtitle">Estado de equipos por área</p>
+    </div>
+  </div>
+  <div class="actions">
+    <button class="btn" onclick="hardRefreshApp()" title="Recargar interfaz si se atora">↻ Refrescar</button>
+    <button class="btn" onclick="toggleFocusMode()" title="Ocultar menú lateral">Enfoque</button>
+    <button class="btn" onclick="undoLastChange()" title="Ctrl+Z">Deshacer</button>
+    <button class="btn" onclick="exportData()" title="Respaldo JSON">Exportar JSON</button>
+    <button class="btn" onclick="exportCSV()" title="Historial en CSV">Exportar CSV</button>
+    <button class="btn" onclick="exportPowerBI()" title="CSV plano para BI">Export BI</button>
+    <button class="btn" onclick="document.getElementById('importFile').click()">Importar</button>
+    <button class="btn primary" onclick="openModal('workOrder')" title="Ctrl+N">+ Nueva OT</button>
+    <input id="importFile" type="file" accept=".json" style="display:none" onchange="importData(event)">
+  </div>
+</div>
+
+<!-- Filtros globales discretos (fuera del menú lateral) -->
+<div class="card" id="globalFilterBar" style="padding:10px 14px;margin-bottom:14px">
+  <div class="flex" style="flex-wrap:wrap;gap:10px;align-items:flex-end">
+    <div class="field" style="margin:0;min-width:140px"><label>Área</label><select id="areaSelect"></select></div>
+    <div class="field" style="margin:0;min-width:140px"><label>Máquina</label><select id="machineSelect"></select></div>
+    <div class="field" style="margin:0;min-width:130px"><label>Periodo</label>
+      <select id="sidePeriodSelect" onchange="onSidePeriodChange()">
+        <option value="day">Día</option>
+        <option value="week">Semana</option>
+        <option value="month">Mes</option>
+      </select>
+    </div>
+    <div class="field" style="margin:0;min-width:140px"><label>Fecha ref.</label>
+      <input type="date" id="sideRefDateInput" onchange="onSidePeriodChange()">
+    </div>
+    <div class="actions" style="margin:0;gap:4px">
+      <button class="btn" style="padding:8px 10px" onclick="shiftDashDate(-1)">←</button>
+      <button class="btn" style="padding:8px 10px" onclick="setDashToday()">Hoy</button>
+      <button class="btn" style="padding:8px 10px" onclick="shiftDashDate(1)">→</button>
+    </div>
+    <span class="muted" id="sidePeriodLabel" style="font-size:11px;align-self:center"></span>
+  </div>
+</div>
+
+<section id="dashboard" class="view active">
+  <div class="grid kpis" id="kpis"></div>
+
+  <!-- Barra de contexto (periodo global, sincronizada con sidebar) -->
+  <div class="card mt" id="dashPeriodBar">
+    <div class="flex" style="flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between">
+      <div class="muted" id="dashContextLabel" style="font-size:13px"></div>
+      <div class="actions" style="margin:0">
+        <button class="btn" onclick="shiftDashDate(-1)">← Anterior</button>
+        <button class="btn" onclick="setDashToday()">Hoy</button>
+        <button class="btn" onclick="shiftDashDate(1)">Siguiente →</button>
+        <button class="btn" id="btnClearMachine" style="display:none" onclick="clearMachineSelection()">✕ Ver todas las máquinas</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Vista TODAS las máquinas del filtro -->
+  <div id="dashAllPanel">
+    <div class="grid machine-grid mt" id="machineTiles"></div>
+    <div class="grid layout2 mt">
+      <div class="card">
+        <div class="section-title">% del periodo parado por máquina — <span id="dashAreaLabel">Cam</span></div>
+        <div class="chartbox"><canvas id="downtimePctChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="section-title">Horas de paro por causa</div>
+        <div class="chartbox"><canvas id="downtimeChart"></canvas></div>
+      </div>
+    </div>
+    <div class="grid layout2 mt">
+      <div class="card">
+        <div class="section-title">Producción: kg objetivo vs producción útil (dona)</div>
+        <div class="chartbox"><canvas id="productionDonut"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="section-title">Kilos del periodo</div>
+        <div class="grid kpis" id="productionKpis" style="grid-template-columns:repeat(3,minmax(0,1fr))"></div>
+        <div id="productionByMachine" class="mt"></div>
+      </div>
+    </div>
+    <div class="grid layout3 mt">
+      <div class="card">
+        <div class="section-title">Máquinas con MÁS eventos <small class="tag" id="rankPeriodHint1"></small></div>
+        <div id="rankMost"></div>
+      </div>
+      <div class="card">
+        <div class="section-title">Máquinas con MENOS eventos <small class="tag" id="rankPeriodHint2"></small></div>
+        <div id="rankLeast"></div>
+      </div>
+      <div class="card">
+        <div class="section-title">Más tiempo parado <small class="tag" id="rankPeriodHint3"></small></div>
+        <div id="rankDowntime"></div>
+      </div>
+    </div>
+    <div class="grid layout2 mt">
+      <div class="card"><div class="section-title">Disponibilidad técnica</div><div class="chartbox"><canvas id="availabilityChart"></canvas></div></div>
+      <div class="card"><div class="section-title">Tiempo parado por día <small class="tag" id="downtimeDayHint"></small></div><div class="chartbox"><canvas id="downtimeDayChart"></canvas></div></div>
+    </div>
+    <div class="grid layout3 mt">
+      <div class="card"><div class="section-title">Alertas activas</div><div id="activeAlerts"></div></div>
+      <div class="card"><div class="section-title">Próximos preventivos</div><div id="nextPm"></div></div>
+      <div class="card"><div class="section-title">Condición predictiva</div><div id="conditionSummary"></div></div>
+    </div>
+    <div class="card mt"><div class="section-title">Incidencias más recurrentes</div><div id="topIncidents"></div></div>
+  </div>
+
+  <!-- Vista UNA máquina (detalle grande) -->
+  <div id="dashActivePanel" style="display:none">
+    <div class="card mt">
+      <div class="flex" style="flex-wrap:wrap;gap:10px;align-items:center">
+        <div class="section-title" style="margin:0">Detalle de máquina: <span id="activeMachineLabel">—</span></div>
+        <div class="tabs" style="margin:0">
+          <button class="tab active" onclick="setMachinePeriod('day',this)">Día</button>
+          <button class="tab" onclick="setMachinePeriod('week',this)">Semana</button>
+          <button class="tab" onclick="setMachinePeriod('month',this)">Mes</button>
+        </div>
+      </div>
+      <div class="grid kpis mt" id="machinePeriodKpis" style="grid-template-columns:repeat(4,minmax(0,1fr))"></div>
+    </div>
+    <div class="grid layout3 mt">
+      <div class="card"><div class="section-title">% parado vs operativo</div><div class="chartbox"><canvas id="machineDowntimePie"></canvas></div></div>
+      <div class="card"><div class="section-title">Horas por tipo de evento</div><div class="chartbox"><canvas id="machineCauseChart"></canvas></div></div>
+      <div class="card"><div class="section-title">Paro por día (en el periodo)</div><div class="chartbox"><canvas id="machineDayChart"></canvas></div></div>
+    </div>
+    <div class="card mt">
+      <div class="section-title">Eventos de esta máquina en el periodo</div>
+      <div id="machinePeriodEvents"></div>
+    </div>
+  </div>
+</section>
+
+<section id="semanaPlanta" class="view">
+  <div class="card">
+    <div class="flex" style="flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between">
+      <div>
+        <div class="section-title" style="margin:0">Semana de la planta</div>
+        <p class="muted" style="font-size:11px;margin:4px 0 0">Resumen ejecutivo del periodo seleccionado en la barra superior (área / máquina / periodo).</p>
+      </div>
+      <button class="btn" onclick="renderSemanaPlanta()">Actualizar</button>
+    </div>
+    <div class="grid kpis mt" id="spKpis" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr))"></div>
+  </div>
+  <div class="grid layout2 mt">
+    <div class="card">
+      <div class="section-title">Top 5 máquinas por paro</div>
+      <div id="spTopMachines"></div>
+    </div>
+    <div class="card">
+      <div class="section-title">Top 5 componentes (semántica)</div>
+      <div id="spTopComps"></div>
+    </div>
+  </div>
+  <div class="grid layout2 mt">
+    <div class="card">
+      <div class="section-title">OT críticas abiertas</div>
+      <div id="spCritOt"></div>
+    </div>
+    <div class="card">
+      <div class="section-title">Salud de backlog (SMRP)</div>
+      <div id="spBacklog"></div>
+    </div>
+  </div>
+  <div class="card mt">
+    <div class="section-title">Comparativo kg desperdiciados — Método A vs B</div>
+    <p class="muted" style="font-size:11px;margin:0 0 10px">
+      <strong>A (reporte diario):</strong> max(Dato1) − max(Dato2) por máquina/día.
+      <strong>B (estimado):</strong> capacidad diaria del catálogo × (minutos de paro ÷ 1440).
+      La diferencia es esperada: no miden lo mismo.
+    </p>
+    <div class="grid kpis" id="spKgCompare" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr))"></div>
+    <div class="chartbox mt" style="height:280px"><canvas id="spKgChart"></canvas></div>
+    <div id="spKgTable" class="mt" style="overflow:auto"></div>
+  </div>
+</section>
+
+<section id="fichaMaquina" class="view">
+  <div class="card">
+    <div class="flex" style="flex-wrap:wrap;gap:12px;align-items:flex-end">
+      <div class="field" style="margin:0;min-width:180px">
+        <label>Máquina</label>
+        <select id="fichaMachineSelect" onchange="renderFichaMaquina()"></select>
+      </div>
+      <button class="btn primary" onclick="renderFichaMaquina()">Ver ficha</button>
+      <button class="btn" onclick="if(selectedMachine){document.getElementById('fichaMachineSelect').value=selectedMachine;renderFichaMaquina()}">Usar máquina del filtro</button>
+    </div>
+  </div>
+  <div id="fichaContent" class="mt"></div>
+</section>
+
+<section id="preventivo" class="view">
+  <div class="card">
+    <div class="flex"><div class="section-title">Plan maestro de mantenimiento preventivo</div><button class="btn primary" onclick="openModal('pm')">+ Agregar plan</button></div>
+    <table><thead><tr><th>Máquina</th><th>Activo / subsistema</th><th>Frecuencia</th><th>Última ejecución</th><th>Próxima</th><th>Prioridad</th><th>Acción</th></tr></thead><tbody id="pmTable"></tbody></table>
+  </div>
+  <div class="card mt">
+    <div class="flex"><div class="section-title">Recomendaciones automáticas (según horas paradas / eventos)</div>
+      <select id="pmRecoPeriod" onchange="renderPmRecommendations()"><option value="month">Último mes</option><option value="week">Última semana</option></select>
+    </div>
+    <p class="muted" style="font-size:11px">Se generan a partir del ranking de máquinas con más tiempo parado / más eventos y de las palabras clave de fallas.</p>
+    <div id="pmRecoList"></div>
+  </div>
+</section>
+
+<section id="predictivo" class="view">
+  <div class="grid layout2">
+    <div class="card">
+      <div class="section-title">Indicadores de condición — <span id="predMachine">BSL-1</span></div>
+      <div class="grid layout3" id="conditionCards"></div>
+      <div class="notice mt">Modelo inicial: umbrales operativos. Las predicciones de abajo usan historial + clasificación semántica (sin sensores IoT).</div>
+    </div>
+    <div class="card"><div class="section-title">Tendencia de condición</div><div class="chartbox"><canvas id="conditionChart"></canvas></div></div>
+  </div>
+
+  <div class="card mt">
+    <div class="section-title">Predicciones avanzadas (recurrencia por máquina + componente)</div>
+    <p class="muted" style="font-size:11px;margin:0 0 10px">Estima riesgo cuando el tiempo desde el último evento se acerca o supera el intervalo histórico medio del mismo componente. Respeta el área del panel izquierdo.</p>
+    <div class="formgrid">
+      <div class="field"><label>Días de historial (entrenamiento)</label>
+        <select id="predHistDays" onchange="renderPrediccionesAvanzadas()">
+          <option value="30">30 días</option>
+          <option value="60" selected>60 días</option>
+          <option value="90">90 días</option>
+          <option value="180">180 días</option>
+          <option value="365">365 días</option>
+        </select>
+      </div>
+      <div class="field"><label>Mín. eventos por componente</label>
+        <select id="predMinEvents" onchange="renderPrediccionesAvanzadas()">
+          <option value="2">≥ 2</option>
+          <option value="3" selected>≥ 3</option>
+          <option value="5">≥ 5</option>
+        </select>
+      </div>
+      <div class="field"><label>Solo correctivos</label>
+        <select id="predOnlyCorrectivo" onchange="renderPrediccionesAvanzadas()">
+          <option value="0">Todos los eventos</option>
+          <option value="1" selected>Solo correctivo / falla</option>
+        </select>
+      </div>
+      <div class="field"><label>Componente (opcional)</label>
+        <select id="predCompFilter" onchange="renderPrediccionesAvanzadas()"></select>
+      </div>
+    </div>
+    <div class="actions mt">
+      <button class="btn primary" onclick="renderPrediccionesAvanzadas()">Generar predicciones</button>
+    </div>
+    <div class="grid layout3 mt" id="predAlertKpis"></div>
+    <div class="mt" id="predAlertList"></div>
+    <div style="overflow:auto" class="mt">
+      <table>
+        <thead><tr><th>Máquina</th><th>Componente</th><th>Último evento</th><th>Intervalo medio</th><th>Días desde último</th><th>Riesgo</th><th>Confianza</th><th>Eventos</th></tr></thead>
+        <tbody id="predTableAvanzada"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="grid layout2 mt">
+    <div class="card">
+      <div class="section-title">Patrón semanal de fallas</div>
+      <p class="muted" style="font-size:11px">Distribución de eventos por día de la semana (filtro de área/máquina).</p>
+      <div class="chartbox"><canvas id="predWeekdayChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="section-title">Predicción simple por máquina</div>
+      <p class="muted" style="font-size:11px">Intervalo medio entre cualquier evento de la máquina (≥3).</p>
+      <div id="predNextFailList"></div>
+    </div>
+  </div>
+
+  <div class="card mt">
+    <div class="section-title">Señales tempranas en texto (NLP básico)</div>
+    <p class="muted" style="font-size:11px">Busca palabras como ruido, vibración, calentando, falseaba… en eventos recientes del filtro.</p>
+    <div id="predEarlySignals"></div>
+  </div>
+
+  <div class="card mt">
+    <div class="section-title">Rondas predictivas / mediciones</div>
+    <table><thead><tr><th>Fecha</th><th>Máquina</th><th>Variable</th><th>Valor</th><th>Unidad</th><th>Umbral</th><th>Estado</th></tr></thead><tbody id="predictiveTable"></tbody></table>
+  </div>
+</section>
+
+<section id="correctivo" class="view">
+  <div class="card">
+    <div class="flex" style="flex-wrap:wrap;gap:10px;align-items:center">
+      <div class="section-title" style="margin:0">Órdenes de trabajo correctivas</div>
+      <span class="muted" id="woFilterLabel" style="font-size:12px"></span>
+      <button class="btn primary" onclick="openModal('workOrder')">+ Nueva OT</button>
+    </div>
+    <p class="muted" style="font-size:11px;margin:8px 0 0">Se filtra según el área, máquina y periodo del panel izquierdo. Elige «Toda la planta» para ver todas las OT.</p>
+    <table class="mt"><thead><tr><th>OT</th><th>Fecha</th><th>Máquina</th><th>Falla</th><th>Prioridad</th><th>Estado</th><th>Horas paro</th><th></th></tr></thead><tbody id="woTable"></tbody></table>
+  </div>
+</section>
+
+<section id="eventos" class="view">
+  <div class="card">
+    <div class="flex" style="flex-wrap:wrap;gap:8px;align-items:center">
+      <div class="section-title" style="margin:0">Componentes / palabras que más aparecen en las fallas</div>
+      <button class="btn" onclick="editKeywords()">Editar palabras clave</button>
+      <button class="btn" onclick="reclassifyificarEventosExistentes(false);renderEvents()">Clasificar pendientes</button>
+      <button class="btn" onclick="reclassifyificarEventosExistentes(true);renderEvents()">Reclasificar todos (4 niveles)</button>
+    </div>
+    <p class="muted" style="font-size:11px" id="keywordListLabel"></p>
+    <div class="chartbox"><canvas id="keywordChart"></canvas></div>
+    <div id="keywordDetail" class="mt"></div>
+  </div>
+  <div class="grid layout3 mt">
+    <div class="card"><div class="section-title">Síntomas más frecuentes</div><div id="topSintomas"></div></div>
+    <div class="card"><div class="section-title">Componentes más afectados</div><div id="topComponentes"></div></div>
+    <div class="card"><div class="section-title">Modos de falla más comunes</div><div id="topModos"></div></div>
+  </div>
+  <div class="grid layout2 mt">
+    <div class="card">
+      <div class="section-title">Top categorías / componentes (auto)</div>
+      <p class="muted" style="font-size:11px;margin:0 0 8px">Clasificación semántica 4 niveles sobre el filtro actual.</p>
+      <div class="chartbox"><canvas id="categoriasFallasChart"></canvas></div>
+      <div id="topFallasCats" class="mt"></div>
+    </div>
+    <div class="card"><div class="section-title">Clasificación de paros (tipo de evento)</div><div class="chartbox"><canvas id="eventChart"></canvas></div></div>
+  </div>
+  <div class="card mt">
+    <div class="flex"><div class="section-title">Fallas y eventos de operación</div><button class="btn primary" onclick="openModal('event')">+ Registrar evento</button></div>
+    <p class="muted" style="font-size:11px;margin:0 0 8px">Filtrado por área / máquina / periodo. Muestra síntoma · componente · modo · acción.</p>
+    <div id="eventList"></div>
+  </div>
+</section>
+
+<section id="tarjetas" class="view">
+  <div class="card">
+    <div class="flex" style="flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between">
+      <div>
+        <div class="section-title" style="margin:0">Base de datos de máquinas</div>
+        <p class="muted" style="font-size:11px;margin:4px 0 0">Edita área, código y capacidad diaria (kg). Los cambios se guardan en este navegador y actualizan filtros y dashboard.</p>
+      </div>
+      <div class="actions" style="margin:0">
+        <button class="btn primary" onclick="agregarMaquinaDB()">+ Añadir máquina</button>
+        <button class="btn" onclick="resetMachineDB()">Restaurar catálogo original</button>
+      </div>
+    </div>
+    <div class="formgrid mt" style="grid-template-columns:repeat(4,1fr)">
+      <div class="field"><label>Filtrar por área</label><select id="mdbAreaFilter" onchange="renderMachineDB()"></select></div>
+      <div class="field"><label>Buscar código</label><input id="mdbSearch" placeholder="BK-1, BSL..." oninput="renderMachineDB()"></div>
+    </div>
+    <div style="overflow:auto" class="mt">
+      <table>
+        <thead><tr><th>Área</th><th>Código / nombre</th><th>Capacidad kg/día</th><th></th></tr></thead>
+        <tbody id="machineDbTable"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="historial" class="view">
+  <div class="card">
+    <div class="flex" style="flex-wrap:wrap;gap:10px;align-items:center">
+      <div class="section-title" style="margin:0">Historial técnico consolidado</div>
+      <span class="muted" id="historyFilterLabel" style="font-size:12px"></span>
+      <input id="historyFilter" placeholder="Buscar máquina, falla, técnico..." oninput="historyPage=0;renderHistory()" style="max-width:260px;background:#ffffff;border:1px solid var(--line);color:var(--text);padding:8px;border-radius:8px">
+      <select id="historyPageSize" onchange="historyPage=0;renderHistory()" style="background:var(--panel);border:1px solid var(--line);color:var(--text);padding:8px;border-radius:8px">
+        <option value="30">30 / página</option>
+        <option value="50" selected>50 / página</option>
+        <option value="100">100 / página</option>
+        <option value="200">200 / página</option>
+      </select>
+    </div>
+    <div class="actions mt" style="flex-wrap:wrap">
+      <button class="btn" onclick="historySelectPage(true)">Seleccionar página</button>
+      <button class="btn" onclick="historySelectFiltered(true)">Seleccionar todo el filtro</button>
+      <button class="btn" onclick="historySelectFiltered(false)">Limpiar selección</button>
+      <button class="btn red" onclick="historyDeleteSelected()">Eliminar seleccionados</button>
+      <button class="btn" onclick="historyExportSelected()">Exportar selección CSV</button>
+      <span class="muted" id="historySelCount" style="font-size:12px">0 seleccionados</span>
+    </div>
+    <p class="muted" style="font-size:11px;margin:8px 0 0">Respeta el filtro de área, máquina y periodo. Puedes seleccionar muchos registros para borrar o exportar.</p>
+    <table class="mt"><thead><tr><th><input type="checkbox" id="historyCheckAll" onchange="historySelectPage(this.checked)" title="Página actual"></th><th>Fecha</th><th>Tipo</th><th>Máquina</th><th>Descripción</th><th>Técnico</th><th>Resultado</th><th></th></tr></thead><tbody id="historyTable"></tbody></table>
+    <div class="flex mt" id="historyPager" style="flex-wrap:wrap;gap:8px;align-items:center"></div>
+  </div>
+</section>
+
+
+<section id="importar" class="view">
+  <div class="grid layout2">
+    <div class="card">
+      <div class="section-title">Importar reporte diario desde Excel</div>
+      <p class="muted" style="font-size:12px">
+        Copia directamente las filas de Excel y pégalas en el cuadro. Se aceptan columnas separadas por tabulaciones.
+        No se realiza detección de duplicados: cada importación se agrega al historial.
+      </p>
+
+      <div class="formgrid">
+        <div class="field">
+          <label>Fecha del reporte</label>
+          <input id="weeklyDate" type="date">
+        </div>
+        <div class="field">
+          <label>Turno / referencia</label>
+          <input id="weeklyWeek" placeholder="Ej. Turno mañana / Día 28">
+        </div>
+        <div class="field">
+          <label>Técnico / responsable</label>
+          <input id="weeklyTech" placeholder="Opcional">
+        </div>
+        <div class="field">
+          <label>Área / turno</label>
+          <input id="weeklyArea" placeholder="Opcional">
+        </div>
+        <div class="field full">
+          <label>Tabla copiada desde Excel</label>
+          <textarea id="weeklyPaste" style="min-height:260px"
+          placeholder="Pega aquí las filas directamente desde Excel.
+
+Ejemplo:
+1	CORRECTIVO	BSL-2	Cambio de transformador y lijado de terminales y zapatas	10:24 a. m.	11:28 a. m.	01:04	1,320	59
+2	CORRECTIVO	BM-1	Anexión de rondanas aislantes	12:59 p. m.	01:36 p. m.	00:37	1,584	41
+3	CORRECTIVO	SELLADORA M2	Ajuste de temperatura de sellado	02:10 p. m.	02:45 p. m.	00:35	980	22"></textarea>
+        </div>
+      </div>
+
+      <div class="actions mt">
+        <button class="btn" onclick="previewWeeklyImport()">Analizar tabla</button>
+        <button class="btn primary" onclick="importWeeklyReport()">Agregar al historial</button>
+        <button class="btn" onclick="clearWeeklyImport()">Limpiar</button>
+      </div>
+      <div id="importProgressWrap">
+        <div class="muted" style="font-size:11px;margin-bottom:4px" id="importProgressLabel">Importando…</div>
+        <div class="import-bar"><span id="importProgressBar"></span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">Reglas de interpretación de máquinas</div>
+      <div class="item-list">
+        <div class="item"><strong>Cam</strong><br><span class="muted">BK-1…BK-8, BNG-1, BNG-2, BC-1, IMP-1…IMP-3, FLEJADORA</span></div>
+        <div class="item"><strong>Dim</strong><br><span class="muted">BM-1…BM-5, BD-1…BD-3, SELLADORA M1…M5, HORNO M, FLEJADORA</span></div>
+        <div class="item"><strong>Bsl</strong><br><span class="muted">BW-1, BN-1…BN-4, B-02, B-03, B-06, BSL-1…BSL-6, BD-4, FLEJADORA, ELEVADOR H</span></div>
+        <div class="item"><strong>Extrusión 1</strong><br><span class="muted">EXT-19, ECB-1, CRI-3…CRI-5, EXT-6, EXT-8…EXT-17</span></div>
+        <div class="item"><strong>Extrusión 2</strong><br><span class="muted">EXT-A4…EXT-A13, EXT-N3…EXT-N7, CRI-1, CRI-2</span></div>
+        <div class="item"><strong>Alias aceptados</strong><br><span class="muted">SL1→BSL-1, BM1→BM-1, BK1→BK-1, EXT A4→EXT-A4, Selladora M2→SELLADORA M2, etc.</span></div>
+        <div class="item"><strong>Dato 1 → Kg objetivo</strong><br><span class="muted">Kilos que debería producir ese día / máquina (también definidos en MACHINE_DB como dailyKg).</span></div>
+        <div class="item"><strong>Dato 2 → Producción muerta</strong><br><span class="muted">Kilos desperdiciados o de producción muerta. Producción útil = Dato 1 − Dato 2.</span></div>
+        <div class="item"><strong>Fecha del reporte</strong><br><span class="muted">Usa la fecha del día del reporte (arriba). Así el dashboard lo cuenta en “hoy” o el día que elijas.</span></div>
+        <div class="item"><strong>Sin duplicados</strong><br><span class="muted">Cada importación agrega todas las filas al historial (no se omiten).</span></div>
+      </div>
+
+      <div id="weeklyPreview" class="mt"></div>
+    </div>
+  </div>
+
+  <div class="card mt">
+    <div class="section-title">Última importación</div>
+    <div id="weeklyImportSummary" class="muted">Todavía no se ha importado un reporte diario en esta sesión.</div>
+  </div>
+</section>
+
+<section id="mensual" class="view">
+  <div class="grid layout2">
+    <div class="card">
+      <div class="section-title">Importar reporte mensual</div>
+      <p class="muted" style="font-size:12px">
+        Pega filas con esta estructura (separadas por tabulaciones o varios espacios):<br>
+        <code style="font-size:11px">Fecha en español · Tipo · Máquina · Descripción · Hora inicio · Hora fin · Duración</code><br>
+        Ejemplo: <em>1 de agosto de 2026 &nbsp; CORRECTIVO &nbsp; BK-5 &nbsp; … &nbsp; 06:30 p. m. &nbsp; 07:40 p. m. &nbsp; 01:10</em>
+      </p>
+
+      <div class="formgrid">
+        <div class="field">
+          <label>Mes / referencia (opcional)</label>
+          <input id="monthlyRef" placeholder="Ej. Agosto 2026">
+        </div>
+        <div class="field">
+          <label>Técnico / responsable</label>
+          <input id="monthlyTech" placeholder="Opcional">
+        </div>
+        <div class="field">
+          <label>Área / turno</label>
+          <input id="monthlyArea" placeholder="Opcional">
+        </div>
+        <div class="field full">
+          <label>Tabla del reporte mensual</label>
+          <textarea id="monthlyPaste" style="min-height:280px"
+          placeholder="Pega aquí las filas del reporte mensual.
+
+Ejemplo:
+1 de agosto de 2026	CORRECTIVO	BK-5	habia agarrado alarma se realiza una revicion del relevador y del cableado devido a que falseava	06:30 p. m.	07:40 p. m.	01:10
+1 de agosto de 2026	CORRECTIVO	BSL-2	se hase cambio del esparrago de ajuste del rodillo 	09:52 p. m.	10:30 p. m.	00:38
+2 de agosto de 2026			maquinas en reposo			00:00
+3 de agosto de 2026	CORRECTIVO	BD-3	Se arreglo el cargador ya que estaba descompuesto	10:18 a. m.	10:40 a. m.	00:22
+3 de agosto de 2026	CORRECTIVO	SELLADORA M6	Se cambio la resistencia y se limpio y ajusto el tornillo que apreta esta misma	01:20 a. m.	01:40 a. m.	00:20"></textarea>
+        </div>
+      </div>
+
+      <div class="actions mt">
+        <button class="btn" onclick="previewMonthlyImport()">Analizar tabla</button>
+        <button class="btn primary" onclick="importMonthlyReport()">Agregar al historial</button>
+        <button class="btn" onclick="clearMonthlyImport()">Limpiar</button>
+      </div>
+      <div id="monthlyProgressWrap" style="display:none;margin-top:10px">
+        <div class="muted" style="font-size:11px;margin-bottom:4px" id="monthlyProgressLabel">Importando…</div>
+        <div class="import-bar"><span id="monthlyProgressBar"></span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">Cómo se interpreta</div>
+      <div class="item-list">
+        <div class="item"><strong>Fecha</strong><br><span class="muted">Formato español: «1 de agosto de 2026», «15 de septiembre de 2026», etc. Se convierte a YYYY-MM-DD.</span></div>
+        <div class="item"><strong>Tipo</strong><br><span class="muted">CORRECTIVO, PREVENTIVO, etc. Si viene vacío se usa «EVENTO».</span></div>
+        <div class="item"><strong>Máquina</strong><br><span class="muted">Se normaliza (BK-5, BSL-2, SELLADORA M6…). Si está vacía se marca como «SIN ASIGNAR».</span></div>
+        <div class="item"><strong>Descripción</strong><br><span class="muted">Texto libre de la intervención o nota (ej. «maquinas en reposo»).</span></div>
+        <div class="item"><strong>Inicio / Fin</strong><br><span class="muted">Horas con a. m. / p. m. (opcional).</span></div>
+        <div class="item"><strong>Duración</strong><br><span class="muted">Formato HH:MM (ej. 01:10 → 70 min).</span></div>
+        <div class="item"><strong>Sin duplicados</strong><br><span class="muted">Cada importación agrega todas las filas (no se omiten).</span></div>
+      </div>
+      <div id="monthlyPreview" class="mt"></div>
+    </div>
+  </div>
+
+  <div class="card mt">
+    <div class="section-title">Última importación mensual</div>
+    <div id="monthlyImportSummary" class="muted">Todavía no se ha importado un reporte mensual en esta sesión.</div>
+  </div>
+</section>
+
+<section id="refacciones" class="view">
+  <div class="card">
+    <div class="flex"><div class="section-title">Inventario de refacciones críticas</div><button class="btn primary" onclick="openModal('part')">+ Refacción</button></div>
+    <table><thead><tr><th>Parte</th><th>Categoría</th><th>Stock</th><th>Mínimo</th><th>Equipo asociado</th><th>Estado</th></tr></thead><tbody id="partsTable"></tbody></table>
+  </div>
+  <div class="card mt">
+    <div class="section-title">Recomendación de stock según fallas (componentes)</div>
+    <p class="muted" style="font-size:11px">Basado en frecuencia de componentes detectados en eventos del filtro actual.</p>
+    <div id="partsRecoList"></div>
+  </div>
+</section>
+
+<section id="equipo" class="view">
+  <div class="card">
+    <div class="flex" style="flex-wrap:wrap;gap:12px;align-items:flex-end">
+      <div class="section-title" style="margin:0">Gestión de personal</div>
+      <div class="field" style="margin:0;min-width:150px">
+        <label>Fecha de referencia</label>
+        <input type="date" id="teamRefDate" onchange="renderTeam()">
+      </div>
+      <div class="field" style="margin:0;min-width:140px">
+        <label>Periodo de análisis</label>
+        <select id="teamPeriod" onchange="renderTeam()">
+          <option value="day">Día completo</option>
+          <option value="week" selected>Semana completa</option>
+          <option value="month">Mes completo</option>
+        </select>
+      </div>
+      <button class="btn primary" onclick="openModal('person')">+ Agregar persona</button>
+    </div>
+    <div class="muted mt" id="teamPeriodLabel" style="font-size:12px"></div>
+  </div>
+
+  <div class="grid layout2 mt">
+    <div class="card">
+      <div class="section-title">Plantilla de personal</div>
+      <table>
+        <thead><tr><th>Nombre</th><th>Rol / Puesto</th><th>Habilidades</th><th>OT abiertas</th><th>Estado</th><th></th></tr></thead>
+        <tbody id="teamTable"></tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div class="section-title">Ranking del periodo</div>
+      <div class="muted" style="font-size:11px;margin-bottom:8px">Orden: trabajos · dificultad acumulada · tiempo</div>
+      <div id="teamRanking"></div>
+    </div>
+  </div>
+
+  <div class="card mt">
+    <div class="section-title">Horas trabajadas por persona (periodo)</div>
+    <div class="muted" style="font-size:11px;margin-bottom:6px">Compara la carga real entre el personal — barras cortas o en cero señalan tiempo muerto o falta de asignación.</div>
+    <div class="chartbox" style="height:320px"><canvas id="teamHoursChart"></canvas></div>
+  </div>
+
+  <div class="grid layout3 mt">
+    <div class="card kpi"><div class="label">Trabajos en el periodo</div><div class="value" id="teamKpiJobs">0</div><div class="sub">Historial + OT del periodo</div></div>
+    <div class="card kpi"><div class="label">Horas totales invertidas</div><div class="value" id="teamKpiHours">0</div><div class="sub">Suma de tiempos de intervención</div></div>
+    <div class="card kpi"><div class="label">Dificultad media</div><div class="value" id="teamKpiDiff">—</div><div class="sub">1 Baja · 2 Media · 3 Alta · 4 Crítica</div></div>
+  </div>
+
+  <div class="card mt">
+    <div class="flex" style="flex-wrap:wrap;gap:10px;align-items:center">
+      <div class="section-title" style="margin:0">Análisis individual</div>
+      <select id="teamPersonSelect" onchange="renderPersonAnalysis()" style="background:#ffffff;border:1px solid var(--line);color:var(--text);padding:8px 11px;border-radius:8px;min-width:200px"></select>
+    </div>
+    <div class="grid kpis mt" id="personKpis" style="grid-template-columns:repeat(4,minmax(0,1fr))"></div>
+    <div class="grid layout2 mt">
+      <div class="card" style="background:#f8fafc">
+        <div class="section-title">Trabajos del periodo</div>
+        <div id="personJobsList"></div>
+      </div>
+      <div class="card" style="background:#f8fafc">
+        <div class="section-title">Distribución por tipo y dificultad</div>
+        <div class="chartbox" style="height:220px"><canvas id="personTypeChart"></canvas></div>
+        <div id="personDiffBars" class="mt"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mt">
+    <div class="section-title">Rutina diaria del técnico</div>
+    <div class="item-list">
+      <div class="item">☐ Revisar alarmas y paros de las líneas del área</div>
+      <div class="item">☐ Confirmar temperaturas de sellado y estabilidad de termopares</div>
+      <div class="item">☐ Revisar sensores/fotoceldas y encoder de tracción</div>
+      <div class="item">☐ Inspeccionar rodillos, bandas, cuchillas y puntos de lubricación</div>
+      <div class="item">☐ Verificar presión neumática, fugas y actuadores</div>
+      <div class="item">☐ Revisar gabinete: ventilación, fuentes, borneras y alarmas de variadores</div>
+      <div class="item">☐ Registrar apagones, E-stop y eventos anormales</div>
+    </div>
+  </div>
+</section>
+
+<section id="comidas" class="view">
+  <div class="tabs" id="mealTabs">
+    <button class="tab active" onclick="showMealTab('generar',this)">Generar semana</button>
+    <button class="tab" onclick="showMealTab('empleados',this)">Empleados</button>
+    <button class="tab" onclick="showMealTab('historial',this)">Historial</button>
+  </div>
+
+  <div class="mealview" id="meal-generar">
+    <div class="grid kpis mt" id="mealStats" style="grid-template-columns:repeat(4,minmax(0,1fr))"></div>
+    <div class="card mt">
+      <div class="section-title">Semana a generar</div>
+      <div class="formgrid">
+        <div class="field"><label>Fecha del lunes</label><input type="date" id="m_lunes"></div>
+        <div class="field"><label>Semana de descanso</label><select id="m_semana"><option value="1">1 — A descansa sábado / B descansa domingo</option><option value="2">2 — A descansa domingo / B descansa sábado</option></select></div>
+      </div>
+      <div class="actions mt"><button class="btn primary" onclick="generarSemanaComidas()">Generar semana</button></div>
+      <p class="muted" style="font-size:11px;margin-top:8px">No aplica a quien está en capacitación (siempre trabaja sábado, solo descansa domingo), ni a quien tiene turno de noche o ausencia marcada esta semana.</p>
+    </div>
+    <div class="card mt" id="mealBoardCard" style="display:none">
+      <div class="section-title">Semana generada</div>
+      <div class="machine-grid" id="mealBoard"></div>
+      <div class="actions mt">
+        <button class="btn green" onclick="archivarSemanaComidas()">Guardar en historial y limpiar</button>
+        <button class="btn" onclick="limpiarSemanalComidas()">Limpiar turno noche / ausencias</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="mealview" id="meal-empleados" style="display:none">
+    <div class="card">
+      <div class="section-title">Agregar empleado</div>
+      <div class="formgrid">
+        <div class="field"><label>Nombre</label><input id="m_nombre" placeholder="Nombre completo"></div>
+        <div class="field"><label>Grupo</label><select id="m_grupo"><option value="A">A</option><option value="B">B</option></select></div>
+      </div>
+      <div class="actions mt"><button class="btn primary" onclick="agregarEmpleadoComida()">Agregar</button></div>
+    </div>
+    <div class="card mt">
+      <div class="section-title">Lista de empleados</div>
+      <p class="muted" style="font-size:11px">Todo editable: grupo, turno noche, capacitación, ausencias de la semana, última fecha y veces asignado. "Activo" en No lo saca de la rotación sin borrar su historial.</p>
+      <div style="overflow:auto"><table><thead><tr><th>Nombre</th><th>Grupo</th><th>Noche</th><th>Capacit.</th><th>Ausencias sem.</th><th>Última fecha</th><th>Veces</th><th>Activo</th><th></th></tr></thead><tbody id="mealEmpTable"></tbody></table></div>
+    </div>
+  </div>
+
+  <div class="mealview" id="meal-historial" style="display:none">
+    <div class="card">
+      <div class="section-title">Agregar un día suelto</div>
+      <div class="formgrid">
+        <div class="field"><label>Fecha</label><input type="date" id="mh_fecha"></div>
+        <div class="field"><label>Turno</label><select id="mh_turno"><option>Mañana</option><option>Tarde</option></select></div>
+        <div class="field"><label>Empleado</label><input id="mh_nombre" list="mealNombres" placeholder="Nombre"><datalist id="mealNombres"></datalist></div>
+      </div>
+      <div class="actions mt">
+        <button class="btn primary" onclick="agregarHistorialComida()">Agregar</button>
+        <button class="btn" onclick="recalcularComidas()">Recalcular desde historial</button>
+      </div>
+    </div>
+    <div class="grid layout2 mt">
+      <div class="card">
+        <div class="section-title">Registro completo</div>
+        <div style="overflow:auto;max-height:340px"><table><thead><tr><th>Fecha</th><th>Día</th><th>Turno</th><th>Empleado</th><th></th></tr></thead><tbody id="mealHistTable"></tbody></table></div>
+      </div>
+      <div class="card">
+        <div class="section-title">Veces que ha ido cada quien</div>
+        <div style="overflow:auto;max-height:340px"><table><thead><tr><th>Nombre</th><th>Veces</th></tr></thead><tbody id="mealResumenTable"></tbody></table></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="informes" class="view">
+  <div class="card">
+    <div class="section-title">Generar informe descargable (PDF)</div>
+    <p class="muted" style="font-size:12px">Elige qué bloques incluir. El alcance usa el área/máquina/periodo de la barra de filtros superior.</p>
+    <div class="formgrid">
+      <div class="field">
+        <label>Máquina (opcional)</label>
+        <select id="reportMachine"><option value="">Todas (área activa)</option></select>
+      </div>
+    </div>
+    <div class="grid layout2 mt" style="gap:8px">
+      <label class="item" style="cursor:pointer;display:flex;gap:8px;align-items:center"><input type="checkbox" id="reportIncDash" checked> Datos del dashboard (KPIs y paro)</label>
+      <label class="item" style="cursor:pointer;display:flex;gap:8px;align-items:center"><input type="checkbox" id="reportIncMach" checked> Desempeño de máquinas + gráfica</label>
+      <label class="item" style="cursor:pointer;display:flex;gap:8px;align-items:center"><input type="checkbox" id="reportIncTeam" checked> Desempeño de personal</label>
+      <label class="item" style="cursor:pointer;display:flex;gap:8px;align-items:center"><input type="checkbox" id="reportIncMeal"> Rol de comidas</label>
+      <label class="item" style="cursor:pointer;display:flex;gap:8px;align-items:center"><input type="checkbox" id="reportIncPm"> Plantilla / preventivos</label>
+      <label class="item" style="cursor:pointer;display:flex;gap:8px;align-items:center"><input type="checkbox" id="reportIncEvents" checked> Fallas y eventos + gráfica</label>
+      <label class="item" style="cursor:pointer;display:flex;gap:8px;align-items:center"><input type="checkbox" id="reportIncParts"> Ranking refacciones / componentes + gráfica</label>
+    </div>
+    <div class="actions mt"><button class="btn primary" onclick="descargarInforme()">⬇ Descargar informe PDF</button></div>
+    <div id="reportStatus" class="muted mt" style="font-size:12px"></div>
+  </div>
+</section>
+
+<section id="negligencia" class="view">
+  <div class="card">
+    <div class="section-title">Registrar tiempo muerto por falta de compra de refacción</div>
+    <p class="muted" style="font-size:11px">Justifica y documenta cuando una máquina estuvo parada porque no se compró/repuso a tiempo una pieza necesaria — sirve como evidencia de decisión gerencial, no de falla técnica.</p>
+    <div class="formgrid">
+      <div class="field"><label>Fecha</label><input type="date" id="ng_fecha"></div>
+      <div class="field"><label>Máquina</label><select id="ng_m"></select></div>
+      <div class="field"><label>Pieza / refacción faltante</label><input id="ng_pieza" placeholder="Ej. rodillo, sensor..."></div>
+      <div class="field"><label>Jefe / responsable</label><input id="ng_jefe" placeholder="Nombre del jefe/área"></div>
+      <div class="field"><label>Horas paradas por esta causa</label><input type="number" id="ng_horas" min="0" step="0.5" value="0"></div>
+    </div>
+    <div class="field"><label>Justificación</label><textarea id="ng_just" rows="3" placeholder="Explica qué pasó, cuándo se solicitó la pieza y por qué no se compró a tiempo"></textarea></div>
+    <div class="actions mt"><button class="btn primary" onclick="agregarNegligencia()">Guardar registro</button></div>
+  </div>
+  <div class="grid layout2 mt">
+    <div class="card"><div class="section-title">Horas perdidas por responsable</div><div class="chartbox"><canvas id="negligenciaJefeChart"></canvas></div></div>
+    <div class="card"><div class="section-title">Horas perdidas por máquina</div><div class="chartbox"><canvas id="negligenciaMaquinaChart"></canvas></div></div>
+  </div>
+  <div class="card mt">
+    <div class="section-title">Registros</div>
+    <div style="overflow:auto"><table><thead><tr><th>Fecha</th><th>Máquina</th><th>Pieza</th><th>Responsable</th><th>Horas</th><th>Justificación</th><th></th></tr></thead><tbody id="negligenciaTable"></tbody></table></div>
+  </div>
+</section>
+
+<section id="backlog" class="view">
+  <div class="card">
+    <div class="section-title">Backlog de mantenimiento — SMRP 5.4.9 (Ready Backlog)</div>
+    <p class="muted" style="font-size:11px">Ready Work: horas de OTs listas para ejecutarse (repuesto en sitio, instructivo y permiso coordinados). Net Crew Capacity: horas/semana reales de la cuadrilla, descontando compromisos indirectos y reserva de emergencias. Ready Backlog Ratio = Ready Work ÷ Net Crew Capacity (semanas de trabajo listo acumulado; referencia sana: 2 a 4 semanas).</p>
+    <div class="formgrid">
+      <div class="field"><label>Personas en la cuadrilla</label><input type="number" id="cr_personas" min="0"></div>
+      <div class="field"><label>Horas/semana por persona</label><input type="number" id="cr_horas" min="0"></div>
+      <div class="field"><label>% compromisos indirectos (capacitación, vacaciones)</label><input type="number" id="cr_indirecto" min="0" max="100"></div>
+      <div class="field"><label>% reserva de emergencias</label><input type="number" id="cr_reserva" min="0" max="100"></div>
+    </div>
+    <div class="actions mt"><button class="btn primary" onclick="guardarCrew()">Guardar capacidad de cuadrilla</button></div>
+  </div>
+  <div class="card mt">
+    <div class="section-title">Marcar OTs abiertas como "listas" (Ready Work)</div>
+    <p class="muted" style="font-size:11px">Márcalas cuando ya tengan repuesto en sitio, instructivo y permiso coordinados.</p>
+    <div style="overflow:auto"><table><thead><tr><th>OT</th><th>Máquina</th><th>Falla</th><th>Horas est.</th><th>¿Lista?</th></tr></thead><tbody id="backlogOtTable"></tbody></table></div>
+  </div>
+  <div class="grid layout3 mt">
+    <div class="card kpi"><div class="label">Ready Work (h)</div><div class="value" id="bkReadyWork">0</div><div class="sub">OTs marcadas como listas</div></div>
+    <div class="card kpi"><div class="label">Net Crew Capacity (h/semana)</div><div class="value" id="bkNetCapacity">0</div><div class="sub">Cuadrilla neta disponible</div></div>
+    <div class="card kpi"><div class="label">Ready Backlog Ratio</div><div class="value" id="bkRatio">0</div><div class="sub">Semanas de trabajo listo</div></div>
+  </div>
+  <div class="card mt"><div class="chartbox"><canvas id="backlogChart"></canvas></div></div>
+</section>
+
+<section id="tableroCompra" class="view">
+  <div class="card">
+    <div class="flex" style="flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between">
+      <div>
+        <div class="section-title" style="margin:0">Tablero de compra (componentes × stock × paro)</div>
+        <p class="muted" style="font-size:11px;margin:4px 0 0">Prioriza compras según frecuencia de falla, horas de paro asociadas y stock en refacciones. Respeta el filtro de área/periodo.</p>
+      </div>
+      <button class="btn" onclick="renderTableroCompra()">Actualizar</button>
+    </div>
+    <div class="grid kpis mt" id="tcKpis" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr))"></div>
+    <div class="chartbox mt" style="height:280px"><canvas id="tcChart"></canvas></div>
+    <div style="overflow:auto" class="mt">
+      <table>
+        <thead><tr><th>#</th><th>Componente</th><th>Eventos</th><th>Horas paro</th><th>Stock</th><th>Mínimo</th><th>Estado stock</th><th>Prioridad</th></tr></thead>
+        <tbody id="tcTable"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="financiero" class="view">
+  <div class="grid kpis" id="finKpis" style="grid-template-columns:repeat(4,minmax(0,1fr))"></div>
+
+  <div class="card mt">
+    <div class="flex" style="flex-wrap:wrap;gap:12px;align-items:flex-end">
+      <div class="section-title" style="margin:0">Configuración de análisis financiero</div>
+      <div class="field" style="margin:0;min-width:150px">
+        <label>Máquina objetivo</label>
+        <select id="finMachine" onchange="onFinMachineChange()"></select>
+      </div>
+      <div class="field" style="margin:0;min-width:120px">
+        <label>Costo refacción (MXN)</label>
+        <input type="number" id="finCostoRefaccion" value="25000" min="0" onchange="renderFinanciero()">
+      </div>
+      <div class="field" style="margin:0;min-width:100px">
+        <label>Horas de paro</label>
+        <input type="number" id="finHorasHombre" value="8" min="0" step="0.5" onchange="renderFinanciero()">
+      </div>
+      <div class="field" style="margin:0;min-width:120px">
+        <label>Costo hora hombre (MXN)</label>
+        <input type="number" id="finCostoHora" value="350" min="0" onchange="renderFinanciero()">
+      </div>
+      <div class="field" style="margin:0;min-width:140px">
+        <label>Pérdida producción/h (MXN)</label>
+        <input type="number" id="finPerdidaProd" value="5000" min="0" onchange="renderFinanciero()">
+      </div>
+      <div class="field" style="margin:0;min-width:130px">
+        <label>Multas/penalizaciones (MXN)</label>
+        <input type="number" id="finMultas" value="15000" min="0" onchange="renderFinanciero()">
+      </div>
+      <button class="btn" onclick="usarHorasRealesFin()">Usar horas reales del periodo</button>
+    </div>
+    <p class="muted" style="font-size:11px;margin:10px 0 0">Compara el costo de comprar la refacción vs. el costo real de una falla (mano de obra + producción perdida + multas). Usa el periodo del panel izquierdo para estimar horas reales.</p>
+  </div>
+
+  <div class="grid layout2 mt">
+    <div class="card">
+      <div class="section-title">El costo real de no tener la refacción <small class="tag">Cascada</small></div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:8px">
+        <span class="badge b-save">Costo refacción</span> →
+        <span class="badge b-warn">+ Horas hombre</span> →
+        <span class="badge b-loss">+ Producción perdida</span> →
+        <span class="badge b-bad">+ Multas</span> →
+        <span class="badge b-bad">COSTO TOTAL REAL</span>
+      </div>
+      <div class="chartbox-lg"><canvas id="waterfallChart"></canvas></div>
+      <div class="mt" style="font-size:13px;padding:8px;background:#fef2f2;border-radius:8px;border:1px solid #fca5a5">
+        <strong>Impacto real:</strong> cada peso no invertido en refacción multiplica la pérdida operativa.
+      </div>
+    </div>
+    <div class="card">
+      <div class="section-title">Preventivo vs. Correctivo <small class="tag">Barras apiladas</small></div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:8px">
+        <span class="badge b-ok">Tener refacción en stock</span> vs
+        <span class="badge b-bad">Máquina parada / falla</span>
+      </div>
+      <div class="chartbox-lg"><canvas id="stackedBarChart"></canvas></div>
+      <div class="mt" style="font-size:13px;padding:8px;background:#f0fdf4;border-radius:8px;border:1px solid #86efac">
+        <strong>Ahorro potencial:</strong> invertir en refacción evita <span id="finAhorroPctDisplay" style="color:var(--green);font-weight:800">0%</span> del costo total de falla.
+      </div>
+    </div>
+  </div>
+
+  <div class="grid layout2 mt">
+    <div class="card">
+      <div class="section-title">Dinero perdido en el tiempo <small class="tag">Área acumulada</small></div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:8px">
+        El área roja representa dinero que se pierde mientras la máquina está parada.
+      </div>
+      <div class="chartbox-lg"><canvas id="areaChart"></canvas></div>
+      <div class="mt" style="font-size:13px;padding:8px;background:#fef2f2;border-radius:8px;border:1px solid #fca5a5">
+        <strong>Tiempo es dinero:</strong> cada hora sin refacción cuesta <span style="color:var(--red);font-weight:800" id="finCostoHoraDisplay">$0</span> (solo producción).
+      </div>
+    </div>
+    <div class="card">
+      <div class="section-title">Desglose financiero detallado</div>
+      <table>
+        <thead><tr><th>Concepto</th><th>Costo (MXN)</th><th>% del total</th></tr></thead>
+        <tbody id="finDetalleTable"></tbody>
+      </table>
+      <div class="mt" style="background:var(--panel2);padding:10px;border-radius:8px">
+        <div class="flex"><strong>COSTO TOTAL REAL</strong><strong style="color:var(--red);font-size:18px" id="finTotalDisplay">$0</strong></div>
+        <div class="flex muted" style="font-size:11px"><span>vs. costo de refacción</span><span id="finComparacionDisplay">+0%</span></div>
+      </div>
+      <div class="actions mt">
+        <button class="btn green" onclick="exportarFinancieroPDF()">Exportar análisis a PDF</button>
+        <button class="btn" onclick="copiarFinanciero()">Copiar resumen</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mt" style="border-left:6px solid var(--yellow)">
+    <div class="flex">
+      <div class="section-title" style="margin:0">Recomendación para la dirección</div>
+      <span class="badge b-warn" style="font-size:12px" id="finRecomendacionBadge">ANÁLISIS</span>
+    </div>
+    <p id="finRecomendacionTexto" style="font-size:14px;line-height:1.6;margin:10px 0 0">
+      El costo de la refacción es <strong style="color:var(--green)" id="finRecomendacionPct">—</strong> del costo total de una falla.
+      Invertir en <strong style="color:var(--blue)">stock preventivo</strong> genera un ahorro estimado de
+      <strong style="color:var(--green)" id="finAhorroDisplay">$0</strong> por evento.
+    </p>
+  </div>
+</section>
+</main>
+</div>
+
+<div class="modal" id="modal">
+<div class="modal-box">
+  <div class="flex"><div class="section-title" id="modalTitle">Nuevo registro</div><button class="btn" onclick="closeModal()">Cerrar</button></div>
+  <div id="modalBody"></div>
+</div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
