@@ -2,7 +2,7 @@ import { mkdir, rm, copyFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 const outputDirectory = resolve('dist');
-const webFiles = ['index.html', 'app.js', 'styles.css'];
+const webFiles = ['index.html', 'app.js', 'styles.css', 'supabase-sync.js'];
 
 await rm(outputDirectory, { recursive: true, force: true });
 await mkdir(outputDirectory, { recursive: true });
