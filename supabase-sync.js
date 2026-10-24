@@ -6,7 +6,7 @@
   'use strict';
 
   const SUPABASE_URL = 'https://kxediwwncowzksycazdt.supabase.co';
-  const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_J-wKdhig_K5uHFlMqSzzfQ';
+  const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_J-wKdhig_K5uHFlMqSzzfQ_8BOEVoKU';
   const TABLE = 'chiaplast_reportes';
   const supabase = window.supabase?.createClient
     ? window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
