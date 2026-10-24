@@ -1,43 +1,57 @@
 # Chiaplast · Gestión integral
 
-Aplicación web local para consultar y administrar la operación de planta desde una sola interfaz.
+Aplicación de gestión de mantenimiento industrial con versión web, instalador de Windows y APK Android nativa basada en WebView (**sin Capacitor en el proceso de compilación Android**).
 
-## Iniciar
+## Usar en computadora sin Python ni herramientas de programación
 
-La app no requiere compilación ni instalación de dependencias. Desde esta carpeta, inicia un servidor estático:
+La opción recomendada para una computadora Windows es el instalador `.exe` generado por GitHub Actions. El usuario final no necesita instalar Python, Node.js ni abrir una terminal.
 
-```bash
-python3 -m http.server 8000
-```
+1. Abre la pestaña **Actions** del repositorio.
+2. Entra en la ejecución completada de **Build Windows installer** correspondiente a la rama `feature/supabase-sync`.
+3. Descarga el artefacto `chiaplast-windows-installer`.
+4. Extrae el artefacto si GitHub lo entrega como ZIP y ejecuta el instalador `.exe`.
 
-Después abre [http://localhost:8000](http://localhost:8000) en el navegador. Chart.js y jsPDF se cargan desde CDN, por lo que las gráficas y exportaciones PDF requieren conexión a internet.
+El instalador no está firmado digitalmente, por lo que Windows puede mostrar una advertencia de seguridad. Instálalo únicamente si verificaste que proviene de este repositorio.
 
-## Instaladores desde GitHub
+## Descargar la APK Android desde GitHub
 
-Los flujos de GitHub Actions generan instaladores para Windows y Android cuando se actualiza la rama `main` o `python`, cuando se publica una etiqueta `v*`, o al iniciar manualmente el flujo desde la pestaña **Actions**:
+1. Abre **Actions**.
+2. Selecciona la ejecución de **Build Android APK (native WebView, no Capacitor)** para la rama `feature/supabase-sync`.
+3. Espera a que la ejecución termine correctamente.
+4. En **Artifacts**, descarga `chiaplast-android-native-debug-apk`.
+5. Extrae el ZIP e instala `app-debug.apk` en tu tablet. Android puede pedir autorización para instalar aplicaciones de esa fuente.
 
-1. Abre una ejecución completada del flujo correspondiente.
-2. Descarga el artefacto en **Artifacts**: `chiaplast-windows-installer` para Windows o `chiaplast-android-debug-apk` para Android.
-3. En Windows, ejecuta el instalador `.exe`. Android genera un APK de depuración que se instala manualmente; no es un paquete firmado para Google Play.
+La APK es de depuración para pruebas y no está preparada para publicarse en Google Play. Los artefactos de Actions se conservan durante 30 días.
 
-Los artefactos se conservan durante 30 días. El instalador de Windows no está firmado digitalmente. El APK de prueba puede solicitar autorización para instalar aplicaciones de origen desconocido.
+## Probar localmente
 
-## Módulos
+Para probar la versión web desde el código fuente, sirve la carpeta con cualquier servidor HTTP estático. El usuario final de Windows no necesita hacerlo si utiliza el instalador `.exe`.
 
-- Dashboard, resumen semanal y ficha de máquina.
-- Mantenimiento preventivo, predictivo y correctivo, eventos e historial.
-- Catálogo de máquinas, refacciones, equipo de mantenimiento y rol de comidas.
-- Importación de reportes diarios y mensuales, informes PDF y backlog.
-- Gestión financiera, compras y pérdidas por falta de refacciones.
+## Sincronización Supabase
 
-Las pantallas comparten los filtros de área, máquina y periodo. La navegación y la pantalla activa se restauran al volver a abrir la app.
+La aplicación utiliza la URL HTTPS del proyecto Supabase configurada en `supabase-sync.js`. Esa URL no debe reemplazarse por `localhost`: localhost es únicamente para el servidor de pruebas local.
 
-## Datos
+La integración inicial sincroniza fallas/eventos de máquina con la tabla `public.chiaplast_reportes`. Los módulos de reportes diarios y mensuales aún no están integrados en esta fase. Para sincronizar dispositivos se requiere conexión a internet y una sesión autenticada.
 
-Los datos se guardan en el `localStorage` del navegador y no se envían a un servidor. El historial se puede exportar a CSV; esa exportación no incluye el resto de los datos guardados. Borrar los datos del sitio o cambiar de navegador puede eliminar o dejar atrás los registros locales.
+La clave de cliente configurada es una publishable key. Nunca agregar una clave `service_role` o una clave secreta al HTML, JavaScript o APK. Antes de uso de producción, restringir las políticas RLS para que cada usuario solo pueda acceder a los datos que le corresponden.
 
-## Archivos
+## Compilación
 
-- `index.html`: estructura de la aplicación.
-- `styles.css`: estilos y diseño adaptable.
-- `app.js`: estado compartido, navegación y funciones de los módulos.
+GitHub Actions construye automáticamente Windows y Android cuando hay cambios en `main`, `python` o `feature/supabase-sync`, y también puede ejecutarse manualmente desde **Actions**.
+
+- Windows: Electron genera un instalador `.exe`.
+- Android: Gradle compila una aplicación Android nativa que muestra los archivos locales en Android WebView usando AndroidX WebKit. La compilación no ejecuta Capacitor ni `cap sync`.
+- El proceso web copia `index.html`, `app.js`, `styles.css` y `supabase-sync.js` a `dist`, para que el módulo de sincronización también se incluya en los artefactos.
+
+## Datos y limitaciones actuales
+
+La aplicación principal mantiene datos en `localStorage`. La sincronización remota actualmente cubre fallas/eventos; no significa que todos los módulos estén sincronizados todavía. Borrar datos de la app o cambiar de navegador puede afectar los datos locales. Exporta respaldos antes de actualizar.
+
+## Archivos principales
+
+- `index.html`: interfaz de la aplicación.
+- `styles.css`: diseño adaptable.
+- `app.js`: navegación, estado y módulos.
+- `supabase-sync.js`: autenticación y sincronización inicial de fallas.
+- `scripts/build-web.mjs`: prepara los archivos web para los instaladores.
+- `android/app/src/main/java/com/chiaplast/gestion/MainActivity.java`: contenedor Android WebView nativo.
