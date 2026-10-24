@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - python
+      - feature/supabase-sync
     tags:
       - 'v*'
   workflow_dispatch:
