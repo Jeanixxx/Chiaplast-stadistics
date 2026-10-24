@@ -121,7 +121,7 @@
     let changed = false;
     db.events.forEach(ev => {
       if (!ev._supabaseId) {
-        ev._supabaseId = (window.crypto?.randomUUID?.() || ('evt-' + Date.now() + '-' + Math.random().toString(16).slice(2)));
+        ev._supabaseId = (window.crypto?.randomUUID?.() || 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { const r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16); }));
         changed = true;
       }
     });
