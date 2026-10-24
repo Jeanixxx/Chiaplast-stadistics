@@ -151,6 +151,7 @@
       const { data: rows, error } = await supabase.from(TABLE).select('id,tipo,fecha_reporte,area,maquina,datos,actualizado_en').eq('tipo','falla');
       if (error) throw error;
 
+      const remoteById = new Map((rows || []).map(row => [row.id, row]));
       const byId = new Map((Array.isArray(db.events) ? db.events : []).filter(e => e._supabaseId).map(e => [e._supabaseId, e]));
       let remoteChanged = false;
       for (const row of (rows || [])) {
@@ -168,8 +169,12 @@
       }
 
       ensureEventIds();
-      const localIds = new Set((db.events || []).map(e => e._supabaseId));
-      const rowsToWrite = (db.events || []).filter(e => localIds.has(e._supabaseId)).map(toRow);
+      const rowsToWrite = (db.events || []).map(ev => ({ ev, row: toRow(ev) })).filter(({ev, row}) => {
+        const remoteRow = remoteById.get(row.id);
+        if (!remoteRow) return true;
+        // Evita upserts redundantes que provocarían otro evento Realtime.
+        return JSON.stringify(remoteRow.datos || {}) !== JSON.stringify(ev);
+      }).map(x => x.row);
       if (rowsToWrite.length) {
         const { error: upsertError } = await supabase.from(TABLE).upsert(rowsToWrite, { onConflict: 'id' });
         if (upsertError) throw upsertError;
