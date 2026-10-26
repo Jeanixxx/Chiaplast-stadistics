@@ -161,11 +161,6 @@ let currentArea = AREA_ORDER[0] || 'Cam'; // '' = toda la planta
 const isAllAreas = ()=> !currentArea || currentArea==='__ALL__';
 const allMachineIds = ()=> [...new Set(Object.values(AREAS).flat())];
 const MACHINES = ()=> isAllAreas() ? allMachineIds() : (AREAS[currentArea] || []);
-const inScopeMachine = (id)=> {
-  if(!id) return false;
-  if(selectedMachine) return id===selectedMachine;
-  return MACHINES().includes(id);
-};
 const now=new Date();
 function iso(d){
   const x=d?new Date(d):new Date();
@@ -861,11 +856,6 @@ function badge(v){
   let c=x.includes('crít')||x.includes('falla')?'b-bad':x.includes('advert')||x.includes('alta')||x.includes('revis')?'b-warn':x.includes('normal')||x.includes('operativa')||x.includes('cerr')||x.includes('dispon')?'b-ok':'b-info';
   return `<span class="badge ${c}">${esc(v)}</span>`;
 }
-function statusDot(s){
-  const t=String(s??'');
-  let c=t==='Operando'?'ok':t.includes('Falla')?'bad':t.includes('Paro')?'warn':'off';
-  return `<span class="dot ${c}"></span>${esc(t)}`;
-}
 function machineFilter(){
   const ids=new Set(MACHINES());
   let list=db.machines.filter(m=>ids.has(m.id));
@@ -1124,13 +1114,6 @@ function durationToMinutes(v){
   return p.minutes;
 }
 function durationToHours(v){return durationToMinutes(v)/60}
-function getISOWeek(date){
-  const d=new Date(Date.UTC(date.getFullYear(),date.getMonth(),date.getDate()));
-  const day=d.getUTCDay()||7;
-  d.setUTCDate(d.getUTCDate()+4-day);
-  const yearStart=new Date(Date.UTC(d.getUTCFullYear(),0,1));
-  return Math.ceil((((d-yearStart)/86400000)+1)/7);
-}
 function clearWeeklyImport(){
   document.getElementById('weeklyPaste').value='';
   document.getElementById('weeklyPreview').innerHTML='';
@@ -1354,7 +1337,7 @@ const VIEW_CONFIG={
   predictivo:{title:'Predictivo',render:renderPredictive},
   correctivo:{title:'Correctivos / OT',render:renderWO},
   eventos:{title:'Fallas y eventos',render:renderEvents},
-  tarjetas:{title:'Base de máquinas',render:()=>{renderCards();renderChassis();}},
+  tarjetas:{title:'Base de máquinas',render:()=>{renderCards();}},
   historial:{title:'Historial',render:renderHistory},
   importar:{title:'Reporte diario'},
   mensual:{title:'Reporte mensual'},
@@ -1394,7 +1377,6 @@ function renderDashboard(){
     if(allPanel) allPanel.style.display='block';
     if(machinePanel) machinePanel.style.display='none';
   }
-  renderKpis();
   if(!selectedMachine){
     renderMachineTiles();
     renderCharts();
@@ -1467,7 +1449,6 @@ function onSidePeriodChange(){
   updateDashPeriodLabel();
   render();
 }
-function onDashDateChange(){ onSidePeriodChange(); }
 function shiftDashDate(dir){
   const p=getDashPeriod();
   const d=parseLocalDate(dashRefDate);
@@ -1503,8 +1484,6 @@ function updateDashPeriodLabel(){
   }
   const areaTxt=isAllAreas()?'Toda la planta':currentArea;
   const machTxt=selectedMachine||'Todas las máquinas';
-  const side=document.getElementById('sidePeriodLabel');
-  if(side) side.textContent=txt;
   const ctx=document.getElementById('dashContextLabel');
   if(ctx) ctx.innerHTML=`<span class="ctx-pill ${pillClass}">📅 ${pillLabel}</span> <strong>${esc(areaTxt)}</strong> · ${esc(machTxt)} · ${esc(txt)}`;
   const btn=document.getElementById('btnClearMachine');
@@ -1519,71 +1498,38 @@ function clearMachineSelection(){
   render();
 }
 
-function renderKpis(){
- const ms=machineFilter();
- const period=getDashPeriod();
- const scopeIds=new Set(MACHINES());
- const areaEvs=eventsInPeriod(selectedMachine||null, period, true, dashRefDate);
- const open=db.workOrders.filter(x=>{
-   if(x.status==='Cerrada') return false;
-   if(selectedMachine && x.machine!==selectedMachine) return false;
-   if(!scopeIds.has(x.machine)) return false;
-   return true;
- }).length;
- const downtimeH=(downtimeMinutes(areaEvs)/60);
- const alerts=db.predictive.filter(x=>{
-   if(x[6]==='Normal') return false;
-   if(selectedMachine && x[1]!==selectedMachine) return false;
-   if(!scopeIds.has(x[1])) return false;
-   return true;
- }).length;
- const totalMin=periodMinutes(period, dashRefDate);
- const avgAvail=ms.length? (ms.reduce((a,m)=>{
-   const mins=downtimeMinutes(eventsInPeriod(m.id,period,false,dashRefDate));
-   return a + Math.max(0,100-(mins/totalMin*100));
- },0)/ms.length) : 100;
- const hybrid=productionHybrid(areaEvs);
- const prod=hybrid;
- const periodLbl={day:'día',week:'semana',month:'mes'}[period]||period;
- const scopeLbl=selectedMachine||(isAllAreas()?'planta':currentArea);
- const wasteSub=hybrid.useReported
-   ? 'Reporte diario (Dato1−Dato2)'
-   : 'Estimado: capacidad × paro';
- const wasteHint=hybrid.useReported
-   ? 'Método A: max(Dato1)−max(Dato2) por máquina/día del reporte diario. Estimado capacidad×paro: '+hybrid.estimated.waste.toLocaleString('es-MX',{maximumFractionDigits:0})+' kg'
-   : 'Método B: Σ (kg/día de la máquina × minutos_paro/1440). Puede diferir del reporte diario.';
- const kpisEl=document.getElementById('kpis');
- if(!kpisEl) return;
- kpisEl.innerHTML=[
-  ['Disponibilidad',avgAvail.toFixed(1)+'%','Promedio · '+scopeLbl,'100% − (minutos de paro ÷ minutos del periodo) × 100, promediado por máquina'],
-  ['OT abiertas',open,'Correctivos pendientes','Órdenes de trabajo con estado distinto de Cerrada en el alcance actual'],
-  ['Paro',downtimeH.toFixed(1)+' h','En el '+periodLbl,'Suma de minutos de eventos del filtro ÷ 60'],
-  ['Kg desperdiciados',prod.waste.toLocaleString('es-MX',{maximumFractionDigits:0}),wasteSub,wasteHint],
-  ['Eventos',areaEvs.length,'En el periodo filtrado','Cantidad de fallas/eventos registrados en el alcance y periodo'],
-  ['Máquinas',ms.filter(x=>x.status==='Operando').length+'/'+ms.length,'En el alcance actual','Equipos Operando / total en área o planta filtrada']
- ].map(x=>`<div class="card kpi" title="${esc(x[3])}"><div class="label">${x[0]}</div><div class="value">${x[1]}</div><div class="sub">${x[2]}</div><div class="hint">${esc(x[3])}</div></div>`).join('');
-}
 function renderMachineTiles(){
- const period=getDashPeriod();
- const totalMin=periodMinutes(period, dashRefDate);
- document.getElementById('machineTiles').innerHTML=machineFilter().map(m=>{
-  const mins=downtimeMinutes(eventsInPeriod(m.id,period,false,dashRefDate));
-  const pct=Math.min(100,(mins/totalMin*100));
-  const avail=Math.max(0,100-pct);
-  const stops=eventsInPeriod(m.id,period,false,dashRefDate).length;
-  const prod=productionFromEvents(eventsInPeriod(m.id,period,false,dashRefDate));
-  const dailyT=m.dailyTarget!=null?m.dailyTarget:(MACHINE_TARGETS[m.id]||0);
-  return `<div class="machine-tile" style="cursor:pointer" onclick="document.getElementById('machineSelect').value='${m.id}';document.getElementById('machineSelect').dispatchEvent(new Event('change'))">
-    <div class="flex"><strong>${esc(m.id)}</strong>${badge(m.status)}</div>
-    <div class="muted" style="margin-top:7px;font-size:11px">${stops} evento(s) • ${(mins/60).toFixed(1)} h paro</div>
-    <div class="muted" style="font-size:11px">Kg: ${prod.actual.toLocaleString('es-MX')} / ${prod.target.toLocaleString('es-MX')} • desperdicio ${prod.waste.toLocaleString('es-MX')}</div>
-    <div class="muted" style="font-size:10px">Objetivo diario: ${dailyT.toLocaleString('es-MX')} kg</div>
-    <div style="margin-top:8px"><div class="flex" style="font-size:10px"><span>% parado</span><strong>${pct.toFixed(1)}%</strong></div>
-    <div class="progress"><span style="width:${pct}%;background:${pct>15?'var(--red)':pct>5?'var(--yellow)':'var(--green)'}"></span></div></div>
-    <small>Disponibilidad: ${avail.toFixed(1)}%</small>
-  </div>`;
- }).join('')||'<div class="empty">Sin máquinas en el área</div>';
+  const root=document.getElementById('machineTiles');
+  if(!root)return;
+  const period=getDashPeriod();
+  const totalMin=Math.max(1,periodMinutes(period,dashRefDate));
+  const machines=machineFilter();
+  root.innerHTML=machines.map(machine=>{
+    const events=eventsInPeriod(machine.id,period,false,dashRefDate);
+    const minutes=downtimeMinutes(events);
+    const stopPct=Math.min(100,minutes/totalMin*100);
+    const production=productionFromEvents(events);
+    const target=Number(machine.dailyTarget??MACHINE_TARGETS[machine.id])||0;
+    return `<button type="button" class="machine-tile" data-machine="${escAttr(machine.id)}" aria-label="Abrir detalle de ${escAttr(machine.id)}">
+      <span class="machine-title"><strong>${esc(machine.id)}</strong>${badge(machine.status)}</span>
+      <span class="machine-metric">${events.length} eventos · ${(minutes/60).toFixed(1)} h de paro</span>
+      <span class="machine-metric">Real ${Math.round(production.actual).toLocaleString('es-MX')} / ${Math.round(production.target).toLocaleString('es-MX')} kg</span>
+      <span class="machine-metric">Desperdicio ${Math.round(production.waste).toLocaleString('es-MX')} kg · Objetivo diario ${target.toLocaleString('es-MX')} kg</span>
+      <span class="machine-progress"><span class="flex" style="font-size:10px"><span>Tiempo de paro</span><strong>${stopPct.toFixed(1)}%</strong></span>
+        <span class="progress"><span style="width:${stopPct}%;background:${stopPct>15?'var(--red)':stopPct>5?'var(--yellow)':'var(--green)'}"></span></span>
+      </span>
+    </button>`;
+  }).join('')||'<div class="empty">No hay máquinas para el área seleccionada.</div>';
+  root.onclick=event=>{
+    const tile=event.target.closest('button[data-machine]');
+    if(!tile||!root.contains(tile))return;
+    const select=document.getElementById('machineSelect');
+    if(!select)return;
+    select.value=tile.dataset.machine;
+    select.dispatchEvent(new Event('change',{bubbles:true}));
+  };
 }
+
 function renderPm(){
  const scopeIds=new Set(MACHINES());
  const rows=db.pm.map((r,i)=>({r,i})).filter(({r})=>{
@@ -1807,22 +1753,6 @@ function resetMachineDB(){
   toast('Catálogo restaurado');
 }
 function renderCards(){ renderMachineDB(); }
-function renderChassis(){}
-function toggleCard(){}
-function predecirProximaFalla(machineId){
-  const eventos=(db.events||[]).filter(e=>e.machine===machineId && e.date).map(e=>({d:parseLocalDate(e.date),e})).filter(x=>!isNaN(x.d)).sort((a,b)=>a.d-b.d);
-  if(eventos.length<3) return null;
-  let sum=0,count=0;
-  for(let i=1;i<eventos.length;i++){
-    const diff=(eventos[i].d-eventos[i-1].d)/(1000*60*60*24);
-    if(diff>0 && diff<365){ sum+=diff; count++; }
-  }
-  if(!count) return null;
-  const promedio=sum/count;
-  const ultima=eventos[eventos.length-1].d;
-  const proxima=new Date(ultima.getTime()+promedio*24*60*60*1000);
-  return {promedio:+promedio.toFixed(1), ultima:iso(ultima), proxima:iso(proxima), n:eventos.length};
-}
 
 const EARLY_SIGNAL_WORDS=['ruido','vibracion','vibración','calentando','calienta','falseaba','falseo','intermitente','chispa','humo','olor','extraño','anomal','prealarm','pre-alarm','sobrecorriente','sobretemperatura'];
 
@@ -2397,30 +2327,55 @@ function safeChartDestroy(bag, key){
 
 function renderEventRankings(){
   const period=getDashPeriod();
-  const lbl={day:'día',week:'semana',month:'mes'}[period]||period;
-  ['rankPeriodHint1','rankPeriodHint2','rankPeriodHint3'].forEach(id=>{
-    const el=document.getElementById(id); if(el) el.textContent='('+lbl+' · '+dashRefDate+')';
-  });
-  const mapEv={}, mapMin={};
-  MACHINES().forEach(id=>{ mapEv[id]=0; mapMin[id]=0; });
+  const ids=MACHINES(), mapEv={}, mapMin={}, mapWaste={};
+  ids.forEach(id=>{mapEv[id]=0;mapMin[id]=0;mapWaste[id]=0;});
   eventsInPeriod(null,period,true,dashRefDate).forEach(e=>{
-    if(mapEv[e.machine]===undefined) return;
+    if(mapEv[e.machine]===undefined)return;
     mapEv[e.machine]++;
     mapMin[e.machine]+=(Number(e.minutes)||0);
   });
+  ids.forEach(id=>{mapWaste[id]=Number(productionFromEvents(eventsInPeriod(id,period,false,dashRefDate)).waste)||0;});
   const most=Object.entries(mapEv).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]));
   const least=[...most].sort((a,b)=>a[1]-b[1]||a[0].localeCompare(b[0]));
-  const byDown=Object.entries(mapMin).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]));
-  const rowEv=(arr)=>arr.slice(0,8).map(([m,n],i)=>`<div class="item"><div class="flex"><span style="font-size:12px"><strong>${i+1}.</strong> ${esc(m)}</span><span class="badge ${n>0?'b-warn':'b-ok'}">${n} evento${n===1?'':'s'}</span></div></div>`).join('')||'<div class="empty">Sin datos en este periodo</div>';
-  const rowDown=(arr)=>arr.slice(0,8).map(([m,mins],i)=>{
-    const h=(mins/60).toFixed(1);
-    return `<div class="item"><div class="flex"><span style="font-size:12px"><strong>${i+1}.</strong> ${esc(m)}</span><span class="badge ${mins>0?'b-bad':'b-ok'}">${h} h</span></div><div class="muted" style="font-size:10px">${mins} min acumulados</div></div>`;
-  }).join('')||'<div class="empty">Sin paros en este periodo</div>';
-  document.getElementById('rankMost').innerHTML=rowEv(most);
-  document.getElementById('rankLeast').innerHTML=rowEv(least);
-  const rd=document.getElementById('rankDowntime');
-  if(rd) rd.innerHTML=rowDown(byDown);
+  const down=Object.entries(mapMin).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]));
+  const waste=Object.entries(mapWaste).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]));
+  const evHtml=a=>a.slice(0,5).map(([m,n],i)=>`<div class="item"><div class="flex"><span style="font-size:12px"><strong>${i+1}.</strong> ${esc(m)}</span><span class="badge ${n?'b-warn':'b-ok'}">${n} evento${n===1?'':'s'}</span></div></div>`).join('')||'<div class="empty">Sin datos en este periodo</div>';
+  const downHtml=a=>a.slice(0,5).map(([m,mins],i)=>`<div class="item"><div class="flex"><span style="font-size:12px"><strong>${i+1}.</strong> ${esc(m)}</span><span class="badge ${mins?'b-bad':'b-ok'}">${(mins/60).toFixed(1)} h</span></div></div>`).join('')||'<div class="empty">Sin paros en este periodo</div>';
+  const wasteHtml=a=>a.slice(0,5).map(([m,kg],i)=>`<div class="item"><div class="flex"><span style="font-size:12px"><strong>${i+1}.</strong> ${esc(m)}</span><span class="badge ${kg?'b-bad':'b-ok'}">${Math.round(kg).toLocaleString('es-MX')} kg</span></div></div>`).join('')||'<div class="empty">Sin datos de producción</div>';
+  const put=(id,html)=>{const el=document.getElementById(id);if(el)el.innerHTML=html;};
+  put('rankMost',evHtml(most));put('rankLeast',evHtml(least));put('rankDowntime',downHtml(down));put('rankWaste',wasteHtml(waste));
 }
+
+function preventiveChecklistKey(date){return 'chiaplast-preventive-checklist-v1:'+date;}
+function readPreventiveChecklist(date){try{return JSON.parse(localStorage.getItem(preventiveChecklistKey(date))||'{}')||{};}catch(e){return {};}}
+function togglePreventiveMachine(machineId,checked){
+  const date=document.getElementById('preventiveChecklistDate')?.value||dashRefDate;
+  const state=readPreventiveChecklist(date);state[machineId]=!!checked;
+  try{localStorage.setItem(preventiveChecklistKey(date),JSON.stringify(state));}catch(e){}
+  const label=[...document.querySelectorAll('.preventive-machine-item')].find(el=>el.querySelector('input')?.dataset.machine===machineId);
+  if(label)label.classList.toggle('is-done',!!checked);
+  renderPreventiveChecklistSummary(date);
+}
+function renderPreventiveChecklistSummary(date){
+  const state=readPreventiveChecklist(date),total=Object.values(state).filter(Boolean).length;
+  const summary=document.getElementById('preventiveChecklistSummary');
+  if(summary)summary.textContent=total+' equipo(s) marcados como atendidos · '+date;
+}
+function renderPreventiveChecklist(){
+  const dateInput=document.getElementById('preventiveChecklistDate');if(!dateInput)return;
+  if(!dateInput.value)dateInput.value=dashRefDate||iso(new Date());
+  dateInput.onchange=()=>renderPreventiveChecklist();
+  const date=dateInput.value,state=readPreventiveChecklist(date),root=document.getElementById('preventiveAreaChecklist');
+  if(!root)return;
+  const grouped={};
+  (LIVE_MACHINE_DB||MACHINE_DB).forEach(row=>{if(!row||!row.code)return;const area=row.area||'Otras';(grouped[area]||(grouped[area]=[])).push(row.code);});
+  root.innerHTML=Object.entries(grouped).map(([area,machines])=>{
+    const done=machines.filter(m=>state[m]).length;
+    return `<section class="preventive-area-card"><div class="preventive-area-head"><span>${esc(area)}</span><span class="badge ${done===machines.length?'b-ok':'b-warn'}">${done}/${machines.length}</span></div><div class="preventive-machine-list">${machines.map(m=>`<label class="preventive-machine-item ${state[m]?'is-done':''}"><input type="checkbox" data-machine="${escAttr(m)}" ${state[m]?'checked':''} onchange="togglePreventiveMachine(this.dataset.machine,this.checked)"><span>${esc(m)}</span></label>`).join('')}</div></section>`;
+  }).join('')||'<div class="empty">No hay máquinas en el área seleccionada.</div>';
+  renderPreventiveChecklistSummary(date);
+}
+
 
 function setMachinePeriod(p,btn){
   machinePeriod=p;
@@ -2429,7 +2384,6 @@ function setMachinePeriod(p,btn){
   if(btn) btn.classList.add('active');
   syncPeriodControls();
   updateDashPeriodLabel();
-  renderKpis();
   renderMachineDetail();
   // También refresca pestañas que dependen del periodo
   renderWO(); renderEvents(); renderHistory();
@@ -2503,110 +2457,47 @@ function renderMachineDetail(){
 }
 
 function renderCharts(){
- destroyCharts();
- updateDashPeriodLabel();
- syncPeriodControls();
+  destroyCharts();
+  updateDashPeriodLabel();
+  syncPeriodControls();
+  const period=getDashPeriod();
+  const areaEvents=eventsInPeriod(null,period,true,dashRefDate);
+  const scopeIds=new Set(MACHINES());
 
- const period=getDashPeriod();
- const areaLbl=isAllAreas()?'Toda la planta':currentArea;
- document.getElementById('dashAreaLabel').textContent=areaLbl + ' (' + (MACHINES().length) + ' equipos)';
- // Vista "todas": no filtrar por selectedMachine en machineFilter visual de tiles
- const scopeIds=new Set(MACHINES());
- const ms=db.machines.filter(m=>scopeIds.has(m.id));
- const totalMin=periodMinutes(period, dashRefDate);
- const pcts=ms.map(m=>{
-   const mins=downtimeMinutes(eventsInPeriod(m.id,period,false,dashRefDate));
-   return Math.min(100, +(mins/totalMin*100).toFixed(2));
- });
- const pctCtx=document.getElementById('downtimePctChart');
- if(pctCtx){
-   charts.downtimePct=new Chart(pctCtx,{
-     type:'bar',
-     data:{labels:ms.map(m=>m.id),datasets:[{label:'% periodo parado',data:pcts,backgroundColor:pcts.map(p=>p>15?'#ef4444':p>5?'#f59e0b':'#22c55e')}]},
-     options:{responsive:true,maintainAspectRatio:false,scales:{y:{min:0,max:Math.max(20, Math.ceil(Math.max(0,...pcts,1)/10)*10), ticks:{callback:v=>v+'%'}}}}
-   });
- }
+  // Paros por causa: solo el periodo seleccionado.
+  const types={};areaEvents.forEach(x=>types[x.type]=(types[x.type]||0)+(Number(x.minutes)||0)/60);
+  const causeCtx=document.getElementById('downtimeChart');
+  if(causeCtx){
+    charts.downtime=new Chart(causeCtx,{type:'doughnut',data:{labels:Object.keys(types).length?Object.keys(types):['Sin paros'],datasets:[{data:Object.keys(types).length?Object.values(types):[1]}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10}}}}}});
+  }
 
- const areaEvents=eventsInPeriod(null,period,true,dashRefDate);
- const types={};areaEvents.forEach(x=>types[x.type]=(types[x.type]||0)+x.minutes/60);
- charts.downtime=new Chart(document.getElementById('downtimeChart'),{type:'doughnut',data:{labels:Object.keys(types).length?Object.keys(types):['Sin paros'],datasets:[{data:Object.keys(types).length?Object.values(types):[1]}]},options:{responsive:true,maintainAspectRatio:false}});
+  // Producción útil real frente al objetivo.
+  const prod=productionFromEvents(areaEvents);
+  const prodCtx=document.getElementById('productionCompareChart');
+  if(prodCtx){
+    charts.productionCompareChart=new Chart(prodCtx,{type:'bar',data:{labels:['Kg'],datasets:[
+      {label:'Objetivo',data:[prod.target],backgroundColor:'#64748b',borderRadius:4},
+      {label:'Real útil',data:[prod.actual],backgroundColor:'#22c55e',borderRadius:4}
+    ]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10}}}},scales:{x:{beginAtZero:true,ticks:{font:{size:10}}},y:{grid:{display:false}}}}});
+  }
+  const kpi=document.getElementById('productionKpis');
+  if(kpi)kpi.innerHTML=[
+    ['Kg objetivo',prod.target.toLocaleString('es-MX',{maximumFractionDigits:0})],
+    ['Kg reales',prod.actual.toLocaleString('es-MX',{maximumFractionDigits:0})],
+    ['Kg desperdiciados',prod.waste.toLocaleString('es-MX',{maximumFractionDigits:0})]
+  ].map(x=>`<div class="card kpi"><div class="label">${x[0]}</div><div class="value">${x[1]}</div></div>`).join('');
 
- // Producción dona: real vs desperdicio (parte no producida del objetivo)
- const prod=productionFromEvents(areaEvents);
- const donutCtx=document.getElementById('productionDonut');
- if(donutCtx){
-   const real=prod.actual;
-   const waste=prod.waste;
-   const has=real+waste>0;
-   charts.productionDonut=new Chart(donutCtx,{
-     type:'doughnut',
-     data:{
-       labels:has?['Kg producidos (real)','Kg desperdiciados / no producidos']:['Sin datos de kg'],
-       datasets:[{data:has?[real,waste]:[1],backgroundColor:has?['#22c55e','#ef4444']:['#263550']}]
-     },
-     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom'},title:{display:true,text:has?`Objetivo periodo ${prod.target.toLocaleString('es-MX')} kg (${prod.days?prod.days.length:0} día(s))`:'Importa reportes con Dato1/Dato2 diarios',color:'#9eabc0',font:{size:12}}}}
-   });
- }
- const periodLbl={day:'día',week:'semana (suma de días con reporte)',month:'mes (suma de días con reporte)'}[period]||period;
- document.getElementById('productionKpis').innerHTML=[
-   ['Kg objetivo (Dato 1)', prod.target.toLocaleString('es-MX',{maximumFractionDigits:0}), 'Suma diaria · '+periodLbl],
-   ['Kg reales (Dato 2)', prod.actual.toLocaleString('es-MX',{maximumFractionDigits:0}), 'Suma diaria · '+periodLbl],
-   ['Kg desperdiciados', prod.waste.toLocaleString('es-MX',{maximumFractionDigits:0}), 'Obj − real del periodo']
- ].map(x=>`<div class="card kpi"><div class="label">${x[0]}</div><div class="value" style="font-size:20px">${x[1]}</div><div class="sub">${x[2]}</div></div>`).join('');
+  const freq={};areaEvents.forEach(x=>{const k=x.desc||x.type;freq[k]=(freq[k]||0)+1;});
+  const top=Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const incidentEl=document.getElementById('topIncidents');
+  if(incidentEl)incidentEl.innerHTML=top.length?top.map(([k,n])=>`<div class="item"><div class="flex"><span style="font-size:12px">${esc(k)}</span><span class="badge b-warn">${n}×</span></div></div>`).join(''):'<div class="empty">Sin incidencias en este periodo</div>';
 
- // Desglose por día (importante: Dato1/Dato2 son diarios)
- let dayBreak='';
- if(prod.days && prod.days.length){
-   dayBreak='<div class="section-title mt" style="font-size:12px">Desglose por día (kg diarios)</div>'+prod.days.map(d=>`<div class="item"><div class="flex"><strong>${esc(d.day)}</strong><span class="badge ${d.waste>0?'b-bad':'b-ok'}">−${d.waste.toLocaleString('es-MX')} kg</span></div><div class="muted" style="font-size:11px">Obj ${d.target.toLocaleString('es-MX')} · Real ${d.actual.toLocaleString('es-MX')}</div></div>`).join('');
- }
- // por máquina
- const byM=ms.map(m=>{
-   const pr=productionFromEvents(eventsInPeriod(m.id,period,false,dashRefDate));
-   return {id:m.id,...pr};
- }).filter(x=>x.target||x.actual).sort((a,b)=>b.waste-a.waste);
- document.getElementById('productionByMachine').innerHTML=
-   (byM.length?byM.slice(0,10).map(x=>`<div class="item"><div class="flex"><strong>${esc(x.id)}</strong><span class="badge ${x.waste>0?'b-bad':'b-ok'}">−${x.waste.toLocaleString('es-MX')} kg</span></div><div class="muted" style="font-size:11px">Real ${x.actual.toLocaleString('es-MX')} / Obj ${x.target.toLocaleString('es-MX')} · ${x.days?x.days.length:0} día(s) con dato</div></div>`).join(''):'<div class="empty">Sin kg en este periodo (Dato 1 = objetivo diario, Dato 2 = real diario)</div>')
-   + dayBreak;
-
- charts.availability=new Chart(document.getElementById('availabilityChart'),{type:'bar',data:{labels:ms.map(m=>m.id),datasets:[{label:'Disponibilidad %',data:ms.map((m,i)=>Math.max(0,100-pcts[i]))}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{min:0,max:100}}}});
-
- // Tiempo parado por día: respeta área + máquina + rango de fechas coherente
- const byDay={};
- const dayHint=document.getElementById('downtimeDayHint');
- const {start:pStart,end:pEnd}=periodRange(period, dashRefDate);
- let chartStart=new Date(pStart), chartEnd=new Date(pEnd);
- // Día: últimos 7 días (contexto). Semana/mes: el propio periodo.
- if(period==='day') chartStart.setDate(chartStart.getDate()-6);
- // Eventos del alcance (área / máquina) dentro del rango del gráfico (no solo del periodo estricto)
- const scopeForDay=new Set(MACHINES());
- db.events.forEach(x=>{
-   if(selectedMachine && x.machine!==selectedMachine) return;
-   if(!scopeForDay.has(x.machine) && x.machine!=='SIN ASIGNAR') return;
-   const dd=eventDate(x);
-   if(dd<chartStart || dd>chartEnd) return;
-   const d=iso(dd);
-   byDay[d]=(byDay[d]||0)+(Number(x.minutes)||0)/60;
- });
- const fillDays=[];
- for(let t=new Date(chartStart.getFullYear(),chartStart.getMonth(),chartStart.getDate()); t<=chartEnd; t.setDate(t.getDate()+1)){
-   fillDays.push(iso(t));
- }
- const days=fillDays.length?fillDays:Object.keys(byDay).sort();
- if(dayHint){
-   dayHint.textContent='('+areaLbl+(selectedMachine?' · '+selectedMachine:'')+' · '+iso(chartStart)+' → '+iso(chartEnd)+')';
- }
- charts.downtimeDay=new Chart(document.getElementById('downtimeDayChart'),{type:'bar',data:{labels:days.length?days:['Sin datos'],datasets:[{label:'Horas paradas',data:days.length?days.map(d=>+(byDay[d]||0).toFixed(2)):[0],backgroundColor:'#ef4444'}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{beginAtZero:true}},plugins:{title:{display:false}}}});
-
- const freq={};areaEvents.forEach(x=>{const k=x.desc||x.type;freq[k]=(freq[k]||0)+1;});
- const top=Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,8);
- document.getElementById('topIncidents').innerHTML=top.length?top.map(([k,n])=>`<div class="item"><div class="flex"><span style="font-size:12px">${esc(k)}</span><span class="badge b-warn">${n}×</span></div></div>`).join(''):'<div class="empty">Sin incidencias en este periodo</div>';
-
- document.getElementById('activeAlerts').innerHTML=db.predictive.filter(x=>(!selectedMachine||x[1]===selectedMachine)&&x[6]!=='Normal').map(x=>`<div class="alert"><strong>${esc(x[1])} • ${esc(x[2])}</strong><br>${esc(x[3])} ${esc(x[4])} • ${esc(x[6])}</div>`).join('')||'<div class="success">No hay alertas predictivas fuera de normal.</div>';
- document.getElementById('nextPm').innerHTML=db.pm.filter(x=>!selectedMachine||x[0]===selectedMachine).sort((a,b)=>String(a[4]).localeCompare(String(b[4]))).slice(0,5).map(x=>`<div class="item"><div class="flex"><strong>${esc(x[0])}</strong>${badge(x[5])}</div><div style="font-size:11px">${esc(x[1])}</div><div class="muted" style="font-size:10px">Próxima: ${esc(x[4])}</div></div>`).join('')||'<div class="empty">Sin preventivos programados</div>';
- document.getElementById('conditionSummary').innerHTML=machineFilter().map(m=>{let c=db.predictive.filter(x=>x[1]===m.id);let bad=c.filter(x=>x[6]==='Crítica').length,w=c.filter(x=>x[6]==='Advertencia').length;return `<div class="item"><div class="flex"><strong>${esc(m.id)}</strong>${bad?badge('Crítica'):w?badge('Advertencia'):badge('Normal')}</div><div class="muted mt" style="font-size:10px">${c.length} mediciones registradas</div></div>`}).join('')||'<div class="empty">Sin datos</div>';
-
- renderEventRankings();
+  const alertEl=document.getElementById('activeAlerts');
+  if(alertEl)alertEl.innerHTML=db.predictive.filter(x=>scopeIds.has(x[1])&&(!selectedMachine||x[1]===selectedMachine)&&x[6]!=='Normal').map(x=>`<div class="alert"><strong>${esc(x[1])} • ${esc(x[2])}</strong><br>${esc(x[3])} ${esc(x[4])} • ${esc(x[6])}</div>`).join('')||'<div class="success">No hay alertas predictivas fuera de normal.</div>';
+  renderEventRankings();
+  renderPreventiveChecklist();
 }
+
 function fillAreaSelectUI(){
   const sel=document.getElementById('areaSelect');
   if(!sel) return;
@@ -3732,7 +3623,6 @@ renderMealEmpleados();renderMealBoard();
 document.getElementById('weeklyDate').value=iso(new Date());
 loadUiState();
 loadFinConfig();
-if(document.getElementById('dashRefDateInput')) document.getElementById('dashRefDateInput').value=dashRefDate;
 if(document.getElementById('teamRefDate')) document.getElementById('teamRefDate').value=dashRefDate;
 window.dashPeriod=window.dashPeriod||'day';
 updateDashPeriodLabel();

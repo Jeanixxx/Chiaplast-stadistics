@@ -1,0 +1,35 @@
+name: Validate Chiaplast Supabase sync
+
+on:
+  push:
+    branches:
+      - feature/supabase-schema-v1
+  pull_request:
+    branches:
+      - feature/web-pwa
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build web files
+        run: npm run build
+      - name: Check JavaScript syntax
+        run: |
+          node --check dist/app.js
+          node --check dist/supabase-sync.js
+          node --check dist/sw.js
+      - name: Verify expected files
+        run: |
+          test -s dist/index.html
+          test -s dist/supabase-sync.js
