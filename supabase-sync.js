@@ -49,86 +49,74 @@
 
   function status(message, kind = 'info') {
     const el = document.getElementById(statusId);
-    if (!el) return;
-    el.textContent = message;
-    el.dataset.kind = kind;
-  }
-
-  function addStylesAndPanel() {
-    if (!document.getElementById('supabaseSyncStyles')) {
-      const style = document.createElement('style');
-      style.id = 'supabaseSyncStyles';
-      style.textContent =
-        '#supabaseSyncPanel{position:fixed;right:14px;bottom:14px;z-index:9999;width:min(360px,calc(100vw - 28px));background:var(--panel,#fff);color:var(--text,#172033);border:1px solid var(--border,#d7dde7);border-radius:12px;padding:14px;box-shadow:0 8px 28px #0002;font:13px/1.4 system-ui,sans-serif}' +
-        '#supabaseSyncPanel h3{font-size:14px;margin:0 0 8px}#supabaseSyncPanel input{box-sizing:border-box;width:100%;margin:4px 0 8px;padding:9px;border:1px solid #cbd5e1;border-radius:7px}' +
-        '#supabaseSyncPanel button{border:0;border-radius:7px;padding:8px 10px;margin:3px 4px 3px 0;cursor:pointer;background:#155e75;color:white}' +
-        '#supabaseSyncPanel button.secondary{background:#e2e8f0;color:#172033}#supabaseSyncStatus{margin:8px 0;color:#475569}#supabaseSyncStatus[data-kind="error"]{color:#b91c1c}#supabaseSyncStatus[data-kind="ok"]{color:#047857}' +
-        '#supabaseSyncPanel .sync-actions{display:flex;flex-wrap:wrap}#supabaseSyncPanel small{display:block;color:#64748b;margin-top:6px}';
-      document.head.appendChild(style);
-    }
-    if (document.getElementById('supabaseSyncPanel')) return;
-    const panel = document.createElement('section');
-    panel.id = 'supabaseSyncPanel';
-    panel.innerHTML =
-      '<h3>Sincronización Chiaplast</h3>' +
-      '<div id="supabaseAuthForm">' +
-        '<label for="supabaseEmail">Correo de Supabase</label>' +
-        '<input id="supabaseEmail" type="email" autocomplete="username" placeholder="correo@empresa.com">' +
-        '<label for="supabasePassword">Contraseña</label>' +
-        '<input id="supabasePassword" type="password" autocomplete="current-password" placeholder="Contraseña">' +
-        '<div class="sync-actions"><button id="supabaseSignIn">Iniciar sesión</button><button id="supabaseSignUp" class="secondary">Crear cuenta</button></div>' +
-      '</div>' +
-      '<div id="supabaseLoggedIn" hidden><div id="supabaseUserLabel"></div>' +
-        '<div class="sync-actions"><button id="supabaseSyncNow">Sincronizar ahora</button><button id="supabaseSignOut" class="secondary">Cerrar sesión</button></div>' +
-      '</div>' +
-      '<div id="' + statusId + '" role="status" aria-live="polite">Preparando conexión…</div>' +
-      '<small>Datos operativos compartidos entre usuarios autenticados. Los indicadores se calculan en la aplicación.</small>';
-    document.body.appendChild(panel);
-    document.getElementById('supabaseSignIn').addEventListener('click', signIn);
-    document.getElementById('supabaseSignUp').addEventListener('click', signUp);
-    document.getElementById('supabaseSignOut').addEventListener('click', signOut);
-    document.getElementById('supabaseSyncNow').addEventListener('click', syncAll);
+    if (el) { el.textContent = message; el.dataset.kind = kind; }
+    const dock = document.getElementById('chiaplastSyncDock'), orb = document.getElementById('cpSyncOrb');
+    if (!dock || !orb) return;
+    const lower = String(message || '').toLowerCase();
+    let state = kind;
+    if (!navigator.onLine || /sin conexión|offline|desconectad/.test(lower)) state = 'offline';
+    else if (kind === 'error' || /error|no se pudo|falló|fallo/.test(lower)) state = 'error';
+    else if (/recibiendo|descargando|leyendo datos|consultando datos/.test(lower)) state = 'download';
+    else if (/enviando|subiendo|guardando en supabase|publicando cambios/.test(lower)) state = 'upload';
+    else if (/sincronizando|preparando sincronización|preparando conexión|validando credenciales/.test(lower)) state = 'sync';
+    else if (/completada|conectado a cambios|sesión iniciada/.test(lower) || kind === 'ok') state = 'ok';
+    else state = 'idle';
+    orb.dataset.state = state; orb.title = message || 'Estado de sincronización';
+    orb.setAttribute('aria-label', 'Estado de sincronización: ' + message);
+    const labels = {upload:['ENVIANDO DATOS','Subiendo cambios a la nube'],download:['RECIBIENDO DATOS','Actualizando desde la nube'],sync:['SINCRONIZANDO','Conectando con Supabase'],offline:['SIN CONEXIÓN','Cambios locales conservados'],error:['ATENCIÓN REQUERIDA','Revisa el detalle del estado'],ok:['SINCRONIZADO','Datos actualizados'],idle:['SISTEMA EN ESPERA','Listo para sincronizar']};
+    const label = labels[state] || labels.idle;
+    const title=document.getElementById('cpSyncTitle'), summary=document.getElementById('cpSyncSummary'), detail=document.getElementById('cpSyncDetailTitle');
+    if(title) title.textContent=label[0]; if(summary) summary.textContent=label[1]; if(detail) detail.textContent=label[0];
+    const authMessage=document.getElementById('cpAuthMessage'), gate=document.getElementById('chiaplastAuthGate');
+    if(authMessage && gate && !gate.hidden){authMessage.textContent=message || 'Introduce tus credenciales.';authMessage.dataset.kind=kind==='error'?'error':kind==='ok'?'ok':'info';}
   }
 
   function showAuth(session) {
-    document.getElementById('supabaseAuthForm').hidden = !!session;
-    document.getElementById('supabaseLoggedIn').hidden = !session;
-    document.getElementById('supabaseUserLabel').textContent =
-      session?.user?.email ? 'Sesión: ' + session.user.email : '';
+    const gate=document.getElementById('chiaplastAuthGate');
+    if(gate) gate.hidden=!!session;
+    document.body.dataset.authenticated=session?'true':'false';
+    const detail=document.getElementById('cpSyncDetailTitle'), authMessage=document.getElementById('cpAuthMessage');
+    if(detail && session) detail.textContent='Sesión activa';
+    if(authMessage && session){authMessage.textContent='Acceso autorizado.';authMessage.dataset.kind='ok';}
   }
 
-  async function signIn() {
-    if (!supabase) return status('No se pudo cargar la biblioteca de Supabase. Comprueba internet.', 'error');
-    const email = document.getElementById('supabaseEmail').value.trim();
-    const password = document.getElementById('supabasePassword').value;
-    if (!email || !password) return status('Escribe tu correo y contraseña.', 'error');
-    status('Iniciando sesión…');
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) return status('No se pudo iniciar sesión: ' + error.message, 'error');
-    showAuth(data.session);
-    status('Sesión iniciada. Preparando sincronización…', 'ok');
-    await startRealtime();
-    await syncAll();
-  }
-
-  async function signUp() {
-    if (!supabase) return status('No se pudo cargar la biblioteca de Supabase.', 'error');
-    const email = document.getElementById('supabaseEmail').value.trim();
-    const password = document.getElementById('supabasePassword').value;
-    if (!email || password.length < 8) return status('Escribe un correo y una contraseña de al menos 8 caracteres.', 'error');
-    status('Creando cuenta…');
-    const { error } = await supabase.auth.signUp({ email, password });
-    if (error) return status('No se pudo crear la cuenta: ' + error.message, 'error');
-    status('Solicitud enviada. Si se solicita confirmar el correo, revisa tu bandeja antes de iniciar sesión.', 'ok');
+  async function signIn(event) {
+    if(event) event.preventDefault();
+    if(!supabase) return status('No se pudo cargar Supabase. Comprueba tu conexión a internet.','error');
+    const email=document.getElementById('supabaseEmail').value.trim(), password=document.getElementById('supabasePassword').value;
+    const button=document.getElementById('supabaseSignIn');
+    if(!email || !password) return status('Escribe tu correo y contraseña.','error');
+    if(button){button.disabled=true;button.textContent='VALIDANDO CREDENCIALES…';}
+    status('Validando credenciales…','sync');
+    const {data,error}=await supabase.auth.signInWithPassword({email,password});
+    if(button){button.disabled=false;button.innerHTML='ACCEDER AL SISTEMA <span aria-hidden="true">↗</span>';}
+    if(error){status('No se pudo iniciar sesión. Verifica tus credenciales e inténtalo de nuevo.','error');console.warn('[Chiaplast Auth]',error.message);return;}
+    showAuth(data.session); status('Sesión iniciada. Preparando sincronización…','sync');
+    await startRealtime(); await syncAll();
   }
 
   async function signOut() {
-    const { error } = await supabase.auth.signOut();
-    if (error) return status('No se pudo cerrar sesión: ' + error.message, 'error');
-    if (channel) await supabase.removeChannel(channel);
-    channel = null;
-    showAuth(null);
+    const {error}=await supabase.auth.signOut();
+    if(error) return status('No se pudo cerrar sesión: '+error.message,'error');
+    if(channel) await supabase.removeChannel(channel);
+    channel=null; showAuth(null);
+    const password=document.getElementById('supabasePassword'); if(password) password.value='';
     status('Sesión cerrada. Los datos locales se conservan.');
+  }
+
+  function installSyncDock() {
+    const orb=document.getElementById('cpSyncOrb'), dock=document.getElementById('chiaplastSyncDock');
+    const form=document.getElementById('cpLoginForm'), manual=document.getElementById('cpSyncManual'), logout=document.getElementById('supabaseSignOut');
+    if(form) form.addEventListener('submit',signIn);
+    if(manual) manual.addEventListener('click',syncAll);
+    if(logout) logout.addEventListener('click',signOut);
+    if(orb && dock){
+      orb.addEventListener('click',()=>{const open=dock.dataset.open!=='true';dock.dataset.open=open?'true':'false';orb.setAttribute('aria-expanded',String(open));});
+      document.addEventListener('click',event=>{if(!dock.contains(event.target)){dock.dataset.open='false';orb.setAttribute('aria-expanded','false');}});
+      document.addEventListener('keydown',event=>{if(event.key==='Escape'){dock.dataset.open='false';orb.setAttribute('aria-expanded','false');}});
+    }
+    window.addEventListener('offline',()=>status('Sin conexión a internet. Los cambios se conservan localmente.','offline'));
+    window.addEventListener('online',()=>{status('Conexión recuperada. Preparando sincronización…','sync');if(supabase)syncAll();});
   }
 
   function uuid() {
@@ -442,13 +430,14 @@
     if (!sessionData.session) return status('Inicia sesión para sincronizar.', 'error');
     busy = true;
     try {
-      status('Leyendo datos operativos compartidos…');
+      status('Recibiendo datos de Supabase…', 'download');
       ensureLocalIds();
       const { data: rows, error } = await supabase.from(TABLE)
         .select('id,tipo,fecha_reporte,area,maquina,datos,actualizado_en');
       if (error) throw error;
 
       const merged = mergeRemote(rows || []);
+      status('Enviando cambios pendientes a Supabase…', 'upload');
       const pending = getPendingDeletions();
       const pendingByKey = new Map(pending.map(item => [item.collection + ':' + item.id, item]));
       const localEntries = collectionEntries();
@@ -506,6 +495,7 @@
       })
       .subscribe(state => {
         if (state === 'SUBSCRIBED') status('Conectado a cambios en tiempo real.', 'ok');
+        else if (state === 'CHANNEL_ERROR' || state === 'TIMED_OUT') status('No se pudo mantener la conexión en tiempo real. Se reintentará al sincronizar.', 'error');
       });
   }
 
@@ -529,8 +519,9 @@
   }
 
   async function init() {
-    addStylesAndPanel();
+    installSyncDock();
     if (!supabase) {
+      showAuth(null);
       status('No se pudo cargar Supabase JS. Verifica internet o el CDN.', 'error');
       return;
     }
@@ -554,7 +545,7 @@
       await startRealtime();
       await syncAll();
     } else {
-      status('Supabase listo. Inicia sesión para sincronizar los datos operativos.');
+      status(navigator.onLine ? 'Supabase listo. Inicia sesión para sincronizar los datos operativos.' : 'Sin conexión a internet. Conéctate para iniciar sesión.', navigator.onLine ? 'info' : 'offline');
     }
   }
 
