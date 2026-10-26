@@ -161,11 +161,6 @@ let currentArea = AREA_ORDER[0] || 'Cam'; // '' = toda la planta
 const isAllAreas = ()=> !currentArea || currentArea==='__ALL__';
 const allMachineIds = ()=> [...new Set(Object.values(AREAS).flat())];
 const MACHINES = ()=> isAllAreas() ? allMachineIds() : (AREAS[currentArea] || []);
-const inScopeMachine = (id)=> {
-  if(!id) return false;
-  if(selectedMachine) return id===selectedMachine;
-  return MACHINES().includes(id);
-};
 const now=new Date();
 function iso(d){
   const x=d?new Date(d):new Date();
@@ -860,11 +855,6 @@ function badge(v){
   const x=String(v??'').toLowerCase();
   let c=x.includes('crít')||x.includes('falla')?'b-bad':x.includes('advert')||x.includes('alta')||x.includes('revis')?'b-warn':x.includes('normal')||x.includes('operativa')||x.includes('cerr')||x.includes('dispon')?'b-ok':'b-info';
   return `<span class="badge ${c}">${esc(v)}</span>`;
-}
-function statusDot(s){
-  const t=String(s??'');
-  let c=t==='Operando'?'ok':t.includes('Falla')?'bad':t.includes('Paro')?'warn':'off';
-  return `<span class="dot ${c}"></span>${esc(t)}`;
 }
 function machineFilter(){
   const ids=new Set(MACHINES());
