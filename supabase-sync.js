@@ -38,6 +38,15 @@
     { key: 'meal.semanaActual', type: 'rol_comidas', get: () => db.meal?.semanaActual, set: v => { db.meal.semanaActual = v; } }
   ];
 
+  const SINGLETONS = [
+    { key: 'config.keywords', type: 'configuracion', get: () => db.keywords, set: v => { db.keywords = v; } },
+    { key: 'config.crew', type: 'configuracion', get: () => db.crew, set: v => { db.crew = v; } },
+    { key: 'config.meal', type: 'configuracion', get: () => db.meal?.config, set: v => { if (!db.meal) db.meal = {}; db.meal.config = v; } },
+    { key: 'config.finanzas', type: 'configuracion_financiera',
+      get: () => { try { return JSON.parse(localStorage.getItem('SL_FIN_CONFIG') || 'null'); } catch (_) { return null; } },
+      set: v => { try { localStorage.setItem('SL_FIN_CONFIG', JSON.stringify(v)); } catch (_) {} } }
+  ];
+
   function status(message, kind = 'info') {
     const el = document.getElementById(statusId);
     if (!el) return;
@@ -131,6 +140,27 @@
   }
 
   function isTuple(row) { return Array.isArray(row); }
+  function readMeta(key, fallback) {
+    try { return Object.assign({}, JSON.parse(localStorage.getItem(key) || '{}')); }
+    catch (_) { return {}; }
+  }
+  function singletonId(key) {
+    const ids = readMeta('SL_SUPABASE_SINGLETON_IDS_V1');
+    if (!ids[key]) {
+      ids[key] = uuid();
+      try { localStorage.setItem('SL_SUPABASE_SINGLETON_IDS_V1', JSON.stringify(ids)); } catch (_) {}
+    }
+    return ids[key];
+  }
+  function singletonTimestamp(key, value) {
+    const times = readMeta('SL_SUPABASE_SINGLETON_TIMES_V1');
+    if (value !== undefined) {
+      times[key] = value || '';
+      try { localStorage.setItem('SL_SUPABASE_SINGLETON_TIMES_V1', JSON.stringify(times)); } catch (_) {}
+    }
+    return times[key] || '';
+  }
+  function findSingleton(key) { return SINGLETONS.find(item => item.key === key); }
   function tupleId(row) {
     const last = row[row.length - 1];
     const prior = row[row.length - 2];
@@ -210,6 +240,12 @@
         out.push({ collection: col.key, type: col.type, id, row, record: cleanRecord(row), updatedAt: timeOf(row) || '' });
       });
     });
+    SINGLETONS.forEach(item => {
+      const value = item.get();
+      if (value == null) return;
+      out.push({ collection: item.key, type: item.type, id: singletonId(item.key), row: null,
+        record: cleanRecord(value), updatedAt: singletonTimestamp(item.key), singleton: true });
+    });
     return out;
   }
 
@@ -239,7 +275,9 @@
       next.set(key, serialized);
       const previous = lastSnapshot?.get(key);
       if (lastSnapshot && previous !== serialized) {
-        if (isTuple(item.row)) {
+        if (item.singleton) {
+          singletonTimestamp(item.collection, now);
+        } else if (isTuple(item.row)) {
           const tagged = setTupleMeta(item.row, item.id, now);
           item.row.splice(0, item.row.length, ...tagged);
         } else {
@@ -264,6 +302,8 @@
 
   function findCollection(key) { return COLLECTIONS.find(col => col.key === key); }
   function removeLocalRecord(collection, id) {
+    const singleton = findSingleton(collection);
+    if (singleton) { singleton.set(null); singletonTimestamp(collection, ''); return; }
     const col = findCollection(collection);
     if (!col) return;
     const rows = col.get();
@@ -271,6 +311,13 @@
     col.set(rows.filter(row => idOf(row) !== id));
   }
   function putLocalRecord(collection, id, record, timestamp) {
+    const singleton = findSingleton(collection);
+    if (singleton) {
+      singleton.set(record);
+      singletonId(collection);
+      singletonTimestamp(collection, timestamp || '');
+      return;
+    }
     const col = findCollection(collection);
     if (!col) return;
     let rows = col.get();
@@ -357,15 +404,16 @@
         return;
       }
       const col = findCollection(remote.collection);
-      if (!col) return;
-      const localRows = col.get() || [];
-      const local = localRows.find(row => idOf(row) === remote.id);
-      if (!local) {
+      const singleton = findSingleton(remote.collection);
+      if (!col && !singleton) return;
+      const localRows = col ? (col.get() || []) : [];
+      const local = singleton ? singleton.get() : localRows.find(row => idOf(row) === remote.id);
+      if (local == null) {
         putLocalRecord(remote.collection, remote.id, remote.record, remote.updatedAt);
         changed = true;
         return;
       }
-      const localTime = Date.parse(timeOf(local) || '') || 0;
+      const localTime = Date.parse(singleton ? singletonTimestamp(remote.collection) : (timeOf(local) || '')) || 0;
       const remoteTime = Date.parse(remote.updatedAt || '') || 0;
       if (remoteTime > localTime) {
         putLocalRecord(remote.collection, remote.id, remote.record, remote.updatedAt);
