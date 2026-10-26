@@ -55,3 +55,12 @@ La aplicación principal mantiene datos en `localStorage`. El sincronizador cubr
 - `supabase-sync.js`: autenticación y sincronización de datos operativos compartidos.
 - `scripts/build-web.mjs`: prepara los archivos web para los instaladores.
 - `android/app/src/main/java/com/chiaplast/gestion/MainActivity.java`: contenedor Android WebView nativo.
+
+
+## Interfaz de acceso y estado de sincronización
+
+La rama `feature/supabase-schema-v1` incluye una pantalla de inicio de sesión de estilo industrial para CHIAPLAST. El sistema muestra la aplicación detrás de la pantalla de acceso y permite entrar con una sesión válida de Supabase Auth. No se ofrece alta libre de cuentas desde esta pantalla; las cuentas deben existir o ser creadas por el procedimiento autorizado de la organización.
+
+El indicador flotante de la esquina inferior derecha cambia de forma y animación para distinguir conexión, envío, recepción, sincronización completada, error y falta de internet. Al pulsarlo se muestran el detalle del estado, la acción de sincronizar manualmente y el cierre de sesión. Si no hay internet, la aplicación indica que los cambios se conservan localmente y vuelve a intentar sincronizar cuando se recupera la conexión.
+
+La interfaz no constituye por sí sola un control de autorización de base de datos: los permisos reales siguen dependiendo de Supabase Auth y las políticas RLS. Se debe validar la experiencia con una cuenta real antes de fusionar y desplegar.
