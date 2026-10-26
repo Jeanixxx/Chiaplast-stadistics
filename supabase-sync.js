@@ -33,6 +33,12 @@
     { key: 'parts', type: 'refaccion', get: () => db.parts, set: v => { db.parts = v; } },
     { key: 'negligencia', type: 'gestion_negligencia', get: () => db.negligencia, set: v => { db.negligencia = v; } },
     { key: 'history', type: 'historial', get: () => db.history, set: v => { db.history = v; } },
+    // Herramientas operativas esenciales. Usan tipo diario para respetar la restricción existente de la tabla.
+    { key: 'kanban', type: 'diario', get: () => db.kanban, set: v => { db.kanban = v; } },
+    { key: 'reminders', type: 'diario', get: () => db.reminders, set: v => { db.reminders = v; } },
+    { key: 'technicalNotes', type: 'diario', get: () => db.technicalNotes, set: v => { db.technicalNotes = v; } },
+    { key: 'dailyChecks', type: 'diario', get: () => db.dailyChecks, set: v => { db.dailyChecks = v; } },
+    { key: 'pmChecks', type: 'diario', get: () => db.pmChecks, set: v => { db.pmChecks = v; } },
     { key: 'meal.employees', type: 'personal', get: () => db.meal?.employees, set: v => { db.meal.employees = v; } },
     { key: 'meal.historial', type: 'historial_comidas', get: () => db.meal?.historial, set: v => { db.meal.historial = v; } },
     { key: 'meal.semanaActual', type: 'rol_comidas', get: () => db.meal?.semanaActual, set: v => { db.meal.semanaActual = v; } }
