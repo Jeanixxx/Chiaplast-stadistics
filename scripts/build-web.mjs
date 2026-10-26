@@ -4,6 +4,7 @@ import { resolve } from 'node:path';
 const outputDirectory = resolve('dist');
 const webFiles = [
   'index.html',
+  'maintenance-tools.html',
   'app.js',
   'styles.css',
   'supabase-sync.js',
