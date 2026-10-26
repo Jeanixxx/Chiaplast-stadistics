@@ -33,6 +33,12 @@ jobs:
           test -s dist/supabase-sync.js
           test -s dist/icons/chiaplast.svg
 
+      - name: Check JavaScript syntax
+        run: |
+          node --check dist/app.js
+          node --check dist/supabase-sync.js
+          node --check dist/sw.js
+
       - name: Package downloadable web bundle
         run: |
           cd dist
