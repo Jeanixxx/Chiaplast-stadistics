@@ -12,7 +12,7 @@ La integración Supabase que existe actualmente sincroniza la colección de **fa
 No se modificó el esquema ni se ejecutaron escrituras en Supabase durante la preparación de la PWA.
 
 ## Instalación
-La PWA debe servirse desde HTTPS (por ejemplo, GitHub Pages) y no abrirse haciendo doble clic en `index.html`. Al visitar la URL en Chrome o Edge, usa el menú del navegador para instalar Chiaplast.
+La PWA debe servirse desde HTTPS (por ejemplo, GitHub Pages) y no abrirse haciendo doble clic en `index.html`. El ZIP se genera automáticamente en GitHub Actions y se conserva durante 30 días. Para publicar una URL instalable permanente, habilita primero GitHub Pages en Settings → Pages → Build and deployment → Source: GitHub Actions; después se habilitará el paso de publicación. Al visitar la URL en Chrome o Edge, usa el menú del navegador para instalar Chiaplast.
 
 El ZIP generado por CI contiene los archivos de publicación web. No es un instalador de Windows ni un servidor local.
 
