@@ -455,7 +455,7 @@ body{background:var(--bg);color:var(--ink)}
   <button class="brand" type="button" onclick="go('menu')" aria-label="Ir al centro de control">
     <span class="brand-mark">C</span><span><b>CHIAPLAST</b><small>MANTENIMIENTO DE PLANTA</small></span>
   </button>
-  <span class="plant-status"><i></i> DATOS LOCALES · SIN SINCRONIZACIÓN</span>
+  <span class="plant-status"><i></i> DATOS OPERATIVOS · SINCRONIZACIÓN CUANDO HAY CONEXIÓN</span>
   <div class="topbar-spacer"></div>
   <span class="topbar-clock" id="dashboardClock"></span>
   <button class="topbar-user" type="button" onclick="go('tools')">⚙ <span id="topbarUser">Técnico</span></button>
@@ -2035,6 +2035,9 @@ async function notesAll(){
         if(window.parent!==window&&window.parent.ChiaplastMaintenanceBridge){
           const remote=window.parent.ChiaplastMaintenanceBridge.getNotes()||[];
           const byId=new Map(local.map(n=>[n.id,n]));
+          const remoteIds=new Set(remote.map(n=>n.id));
+          const missing=local.filter(n=>n&&n.id&&!remoteIds.has(n.id));
+          if(missing.length&&window.parent.ChiaplastMaintenanceBridge.saveNotes)window.parent.ChiaplastMaintenanceBridge.saveNotes(missing);
           remote.forEach(n=>{const old=byId.get(n.id);byId.set(n.id,old?{...n,photos:old.photos||[]}:n)});
           local=[...byId.values()];
         }
