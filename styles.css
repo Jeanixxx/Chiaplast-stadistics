@@ -183,7 +183,7 @@ body{font-size:13px;line-height:1.45;letter-spacing:.005em}
 .machine-tile:hover{border-color:#9eacba;background:var(--panel);transform:translateY(-1px)}
 .machine-tile .machine-metric{font-size:11px;color:var(--muted);margin-top:7px}
 .machine-tile .machine-title{display:flex;align-items:center;justify-content:space-between;gap:8px}
-.machine-tile .machine-progress{margin-top:9px}
+.machine-tile .machine-progress{display:block;margin-top:9px}
 .preventive-area-grid{gap:10px}
 .preventive-area-card{background:var(--panel);border-color:var(--line);border-radius:10px}
 .preventive-machine-item{background:var(--panel2);border:1px solid transparent;transition:background .15s ease,border-color .15s ease}
