@@ -31,9 +31,9 @@ Para probar la versión web desde el código fuente, sirve la carpeta con cualqu
 
 La aplicación utiliza la URL HTTPS del proyecto Supabase configurada en `supabase-sync.js`. Esa URL no debe reemplazarse por `localhost`: localhost es únicamente para el servidor de pruebas local.
 
-La integración inicial sincroniza fallas/eventos de máquina con la tabla `public.chiaplast_reportes`. Los módulos de reportes diarios y mensuales aún no están integrados en esta fase. Para sincronizar dispositivos se requiere conexión a internet y una sesión autenticada.
+La sincronización operativa de esta rama usa la tabla existente `public.chiaplast_reportes` y comparte entre sesiones autenticadas fallas/eventos, órdenes de trabajo, preventivos, máquinas, tarjetas, chasis, refacciones, historial, registros de personal y rol de comidas. Se conserva una copia local para trabajar sin conexión; los cambios se envían al recuperar internet e iniciar sesión. Los indicadores, gráficas, disponibilidad calculada, MTBF/MTTR, tendencias y predicciones se calculan en la aplicación y no se guardan como registros centrales. Las eliminaciones se sincronizan mediante marcadores de borrado. Esta ampliación requiere validar las políticas RLS existentes y probar con dos sesiones antes de considerarla lista para producción.
 
-La clave de cliente configurada es una publishable key. Nunca agregar una clave `service_role` o una clave secreta al HTML, JavaScript o APK. Antes de uso de producción, restringir las políticas RLS para que cada usuario solo pueda acceder a los datos que le corresponden.
+La clave de cliente configurada es una publishable key. Nunca agregar una clave `service_role` o una clave secreta al HTML, JavaScript o APK. En esta etapa se solicita acceso compartido para todos los usuarios autenticados. Las políticas RLS de `chiaplast_reportes` deben permitirles leer y escribir los registros operativos compartidos; no se deben ejecutar aún las migraciones nuevas de `supabase/migrations/`, porque el sincronizador de esta rama todavía usa la tabla existente. Las migraciones son un diseño posterior y requieren revisión y pruebas por separado.
 
 ## Compilación
 
@@ -45,13 +45,13 @@ GitHub Actions construye automáticamente Windows y Android cuando hay cambios e
 
 ## Datos y limitaciones actuales
 
-La aplicación principal mantiene datos en `localStorage`. La sincronización remota actualmente cubre fallas/eventos; no significa que todos los módulos estén sincronizados todavía. Borrar datos de la app o cambiar de navegador puede afectar los datos locales. Exporta respaldos antes de actualizar.
+La aplicación principal mantiene datos en `localStorage`. El sincronizador cubre las colecciones operativas indicadas arriba; no sincroniza preferencias de interfaz ni métricas derivadas. Borrar datos de la app o cambiar de navegador puede afectar los datos locales. Exporta respaldos antes de actualizar.
 
 ## Archivos principales
 
 - `index.html`: interfaz de la aplicación.
 - `styles.css`: diseño adaptable.
 - `app.js`: navegación, estado y módulos.
-- `supabase-sync.js`: autenticación y sincronización inicial de fallas.
+- `supabase-sync.js`: autenticación y sincronización de datos operativos compartidos.
 - `scripts/build-web.mjs`: prepara los archivos web para los instaladores.
 - `android/app/src/main/java/com/chiaplast/gestion/MainActivity.java`: contenedor Android WebView nativo.
