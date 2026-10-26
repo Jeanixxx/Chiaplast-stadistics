@@ -1340,6 +1340,33 @@ function maintenanceJson(value,fallback=[]){
   if(value==null)return fallback;
   try{const parsed=JSON.parse(value);return parsed==null?fallback:parsed}catch(_){return fallback}
 }
+function importMaintenanceStorageIntoDb(){
+  const readArray=key=>{try{const value=JSON.parse(localStorage.getItem(key)||'[]');return Array.isArray(value)?value:[]}catch(_){return[]}};
+  const mergeMissing=(current,incoming)=>{
+    const result=Array.isArray(current)?current.slice():[];
+    const ids=new Set(result.map(item=>item&&String(item.id||item._supabaseId||item.folio||'')).filter(Boolean));
+    incoming.forEach(item=>{if(!item||typeof item!=='object')return;const id=String(item.id||item._supabaseId||item.folio||'');if(!id||!ids.has(id)){result.push(item);if(id)ids.add(id)}});
+    return result;
+  };
+  db.kanban=mergeMissing(db.kanban,readArray('mtto_kanban'));
+  db.reminders=mergeMissing(db.reminders,readArray('mtto_reminders'));
+  db.dailyChecks=mergeMissing(db.dailyChecks,readArray('mtto_hist'));
+  const calendar=readArray('mtto_preventive_calendar');
+  const boards=(db.pmChecks||[]).filter(item=>item&&item._syncKind==='pmBoard');
+  let orders=mergeMissing((db.pmChecks||[]).filter(item=>!item||item._syncKind!=='pmBoard'),calendar);
+  const boardIds=new Set(boards.map(item=>item.month));
+  try{
+    for(let i=0;i<localStorage.length;i++){
+      const key=localStorage.key(i);
+      if(!key||!/^mtto_pm_board_\\d{4}-\\d{2}$/.test(key))continue;
+      const month=key.slice('mtto_pm_board_'.length);
+      if(boardIds.has(month))continue;
+      const board=JSON.parse(localStorage.getItem(key)||'null');
+      if(board)boards.push({id:'board:'+month,_syncKind:'pmBoard',month,board,updatedAt:new Date().toISOString()});
+    }
+  }catch(_){}
+  db.pmChecks=orders.concat(boards);
+}
 function syncMaintenanceStorageFromDb(){
   const put=(key,value)=>{try{const raw=JSON.stringify(value);if(localStorage.getItem(key)!==raw)localStorage.setItem(key,raw)}catch(_){}};
   put('mtto_kanban',Array.isArray(db.kanban)?db.kanban:[]);
@@ -1384,7 +1411,9 @@ function renderMaintenanceTools(){
   if(!frame)return;
   if(frame.dataset.loaded!=='true'){
     frame.dataset.loaded='true';
+    importMaintenanceStorageIntoDb();
     syncMaintenanceStorageFromDb();
+    save();
     frame.src='maintenance-tools.html';
   }
 }
