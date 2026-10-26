@@ -515,6 +515,9 @@
     const wrapped = function(...args) {
       if (!syncingRemote) markLocalChanges();
       const result = originalSave.apply(this, args);
+      // save() also writes standalone settings such as SL_FIN_CONFIG.
+      // Re-check after the original save so those settings receive a change timestamp.
+      if (!syncingRemote) markLocalChanges();
       if (!syncingRemote) {
         clearTimeout(saveTimer);
         saveTimer = setTimeout(() => { if (supabase) syncAll(); }, 1200);
