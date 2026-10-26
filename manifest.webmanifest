@@ -1,0 +1,15 @@
+{
+  "id": "./",
+  "name": "Chiaplast Statistics",
+  "short_name": "Chiaplast",
+  "description": "Gestión y análisis de mantenimiento industrial de Chiaplast.",
+  "lang": "es-MX",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4f7fb",
+  "theme_color": "#155e75",
+  "icons": [
+    { "src": "./icons/chiaplast.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

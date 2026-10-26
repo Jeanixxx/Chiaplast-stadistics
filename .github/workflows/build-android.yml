@@ -1,0 +1,58 @@
+name: Build Android APK (native WebView, no Capacitor)
+
+on:
+  push:
+    branches:
+      - main
+      - python
+      - feature/supabase-sync
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: '21'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          accept-android-sdk-licenses: true
+          packages: platform-tools platforms;android-36 build-tools;36.0.0
+
+      - name: Build web assets
+        run: npm run build
+
+      - name: Package web assets for native Android WebView
+        run: |
+          mkdir -p android/app/src/main/assets/public
+          cp -R dist/. android/app/src/main/assets/public/
+
+      - name: Build native Android APK (no Capacitor)
+        run: ./gradlew assembleDebug
+        working-directory: android
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: chiaplast-android-native-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 30

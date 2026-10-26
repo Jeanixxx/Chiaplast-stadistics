@@ -1,0 +1,44 @@
+{
+  "name": "chiaplast-gestion",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Gestión integral de mantenimiento industrial para Chiaplast",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "build": "node scripts/build-web.mjs",
+    "build:windows": "npm run build && electron-builder --win nsis --x64 --ia32 --publish never",
+    "android:sync": "npm run build && cap sync android"
+  },
+  "dependencies": {
+    "@capacitor/core": "8.5.3"
+  },
+  "devDependencies": {
+    "@capacitor/android": "8.5.3",
+    "@capacitor/cli": "8.5.3",
+    "electron": "43.8.3",
+    "electron-builder": "26.15.3"
+  },
+  "build": {
+    "appId": "com.chiaplast.gestion",
+    "productName": "Chiaplast Gestión",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "electron/main.cjs",
+      "dist/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  }
+}

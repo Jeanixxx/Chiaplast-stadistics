@@ -1,0 +1,77 @@
+name: Build and publish Chiaplast web PWA
+
+on:
+  push:
+    branches:
+      - feature/web-pwa
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: chiaplast-web-pwa-pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Build static web app
+        run: npm run build
+
+      - name: Validate PWA files
+        run: |
+          test -s dist/index.html
+          test -s dist/manifest.webmanifest
+          test -s dist/sw.js
+          test -s dist/app.js
+          test -s dist/supabase-sync.js
+          test -s dist/icons/chiaplast.svg
+
+      - name: Check JavaScript syntax
+        run: |
+          node --check dist/app.js
+          node --check dist/supabase-sync.js
+          node --check dist/sw.js
+
+      - name: Package downloadable web bundle
+        run: |
+          cd dist
+          zip -r ../chiaplast-web-pwa.zip .
+          cd ..
+
+      - name: Upload downloadable ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: chiaplast-web-pwa
+          path: chiaplast-web-pwa.zip
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload website for GitHub Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      pages: write
+      id-token: write
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
