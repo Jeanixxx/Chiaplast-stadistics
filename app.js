@@ -3647,7 +3647,6 @@ renderMealEmpleados();renderMealBoard();
 document.getElementById('weeklyDate').value=iso(new Date());
 loadUiState();
 loadFinConfig();
-if(document.getElementById('dashRefDateInput')) document.getElementById('dashRefDateInput').value=dashRefDate;
 if(document.getElementById('teamRefDate')) document.getElementById('teamRefDate').value=dashRefDate;
 window.dashPeriod=window.dashPeriod||'day';
 updateDashPeriodLabel();
