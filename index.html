@@ -11,8 +11,120 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <link rel="stylesheet" href="styles.css">
+
+<style id="chiaplast-auth-and-sync-ui">
+:root{--cp-ink:#e8f0f4;--cp-muted:#8ea4b3;--cp-panel:#101d27;--cp-line:rgba(164,190,207,.19);--cp-cyan:#56d6d0;--cp-amber:#ffbd59;--cp-red:#ff7272;--cp-green:#64e0a3}
+#chiaplastAuthGate{position:fixed;inset:0;z-index:20000;display:grid;place-items:center;padding:24px;background:radial-gradient(ellipse at 15% 15%,rgba(34,117,132,.22),transparent 42%),radial-gradient(ellipse at 85% 85%,rgba(37,87,112,.2),transparent 40%),#08121a;color:var(--cp-ink);overflow:auto;transition:opacity .45s ease,visibility .45s ease}
+#chiaplastAuthGate[hidden]{display:none}
+.cp-auth-shell{width:min(980px,100%);min-height:570px;display:grid;grid-template-columns:1.05fr .95fr;border:1px solid rgba(137,177,198,.24);border-radius:22px;overflow:hidden;background:rgba(12,25,35,.88);box-shadow:0 32px 90px #0007;animation:cp-enter .7s cubic-bezier(.2,.75,.2,1) both}
+.cp-auth-brand{position:relative;display:flex;flex-direction:column;justify-content:space-between;padding:clamp(28px,5vw,54px);background:linear-gradient(145deg,rgba(23,73,88,.72),rgba(12,27,39,.94));border-right:1px solid var(--cp-line);overflow:hidden}
+.cp-auth-brand:before,.cp-auth-brand:after{content:"";position:absolute;pointer-events:none;border:1px solid rgba(86,214,208,.13);transform:rotate(-26deg);border-radius:28px}
+.cp-auth-brand:before{width:390px;height:160px;right:-170px;top:80px}.cp-auth-brand:after{width:430px;height:180px;right:-190px;top:140px}
+.cp-brand-mark{position:relative;z-index:1;display:flex;align-items:center;gap:13px}
+.cp-brand-symbol{width:52px;height:52px;border:1px solid rgba(86,214,208,.55);border-radius:14px;display:grid;place-items:center;color:var(--cp-cyan);background:rgba(86,214,208,.08);box-shadow:inset 0 0 24px rgba(86,214,208,.06)}
+.cp-brand-word{font-size:clamp(24px,4vw,34px);font-weight:850;letter-spacing:.14em;line-height:1}
+.cp-brand-word span{color:var(--cp-cyan)}
+.cp-brand-sub{font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:#9bb5c4;margin-top:8px}
+.cp-auth-copy{position:relative;z-index:1;margin:56px 0}
+.cp-kicker{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--cp-cyan);font-weight:750}
+.cp-auth-copy h1{font-size:clamp(28px,4vw,42px);line-height:1.08;letter-spacing:-.035em;margin:14px 0}
+.cp-auth-copy p{max-width:340px;color:#9eb2bf;line-height:1.75;font-size:14px}
+.cp-system-line{display:flex;align-items:center;gap:9px;color:#9eb2bf;font-size:11px;letter-spacing:.06em;position:relative;z-index:1}
+.cp-live-dot{width:7px;height:7px;border-radius:50%;background:var(--cp-cyan);box-shadow:0 0 0 5px rgba(86,214,208,.1);animation:cp-pulse 2s infinite}
+.cp-auth-form-side{padding:clamp(28px,5vw,56px);display:flex;flex-direction:column;justify-content:center}
+.cp-form-head{margin-bottom:30px}.cp-form-head h2{font-size:25px;letter-spacing:-.025em;margin:10px 0 8px}.cp-form-head p{color:var(--cp-muted);font-size:13px;line-height:1.6;margin:0}
+.cp-field{display:block;color:#c5d3dc;font-size:12px;font-weight:650;margin:17px 0 8px}
+.cp-input-wrap{position:relative}.cp-input{box-sizing:border-box;width:100%;height:48px;border:1px solid rgba(147,177,194,.24);border-radius:10px;padding:0 14px;background:#0a1721;color:#edf6f9;font:14px system-ui;outline:none;transition:border-color .2s,box-shadow .2s,background .2s}
+.cp-input:focus{border-color:var(--cp-cyan);box-shadow:0 0 0 3px rgba(86,214,208,.11);background:#0b1b26}
+.cp-input::placeholder{color:#526977}
+.cp-auth-submit{width:100%;height:49px;margin-top:24px;border:0;border-radius:10px;color:#062126;background:linear-gradient(100deg,#64e2d6,#54c7d5);font-weight:800;font-size:13px;letter-spacing:.03em;cursor:pointer;box-shadow:0 9px 24px rgba(55,194,198,.13);transition:transform .2s,filter .2s,box-shadow .2s}
+.cp-auth-submit:hover{transform:translateY(-2px);filter:brightness(1.06);box-shadow:0 12px 28px rgba(55,194,198,.2)}.cp-auth-submit:active{transform:translateY(0)}.cp-auth-submit:disabled{opacity:.55;cursor:wait;transform:none}
+.cp-auth-message{min-height:21px;margin:14px 0 0;color:#9eb2bf;font-size:12px;line-height:1.5}.cp-auth-message[data-kind="error"]{color:#ff9696}.cp-auth-message[data-kind="ok"]{color:#79e5b0}
+.cp-auth-foot{font-size:10px;color:#6f8795;line-height:1.6;margin-top:26px;padding-top:18px;border-top:1px solid var(--cp-line)}
+#chiaplastSyncDock{position:fixed;z-index:15000;right:20px;bottom:20px;display:flex;align-items:center;gap:10px;font:12px/1.4 system-ui,sans-serif;color:#e8f0f4}
+#cpSyncOrb{position:relative;width:54px;height:54px;border:1px solid rgba(143,182,200,.3);border-radius:50%;background:rgba(10,24,34,.94);display:grid;place-items:center;cursor:pointer;box-shadow:0 8px 30px #0003;backdrop-filter:blur(14px);transition:border-radius .55s cubic-bezier(.2,.8,.2,1),transform .45s,background .3s,border-color .3s}
+#cpSyncOrb:before{content:"";position:absolute;inset:5px;border:1px solid rgba(86,214,208,.22);border-radius:50%;transition:transform .7s,border-radius .6s}
+#cpOrbCore{width:16px;height:16px;border-radius:50%;background:var(--cp-cyan);box-shadow:0 0 15px rgba(86,214,208,.6);transition:all .45s cubic-bezier(.2,.8,.2,1)}
+#cpSyncOrb[data-state="upload"]{border-radius:38% 62% 55% 45%/44% 42% 58% 56%;border-color:rgba(255,189,89,.7);animation:cp-morph 2.8s ease-in-out infinite}
+#cpSyncOrb[data-state="upload"] #cpOrbCore{background:var(--cp-amber);box-shadow:0 0 20px rgba(255,189,89,.8);transform:scale(.72)}
+#cpSyncOrb[data-state="download"]{border-radius:50% 50% 40% 60%;border-color:rgba(86,214,208,.75);animation:cp-morph 2.2s ease-in-out infinite}
+#cpSyncOrb[data-state="download"] #cpOrbCore{transform:scale(1.25);box-shadow:0 0 23px rgba(86,214,208,.85)}
+#cpSyncOrb[data-state="sync"]{border-radius:42% 58% 46% 54%;animation:cp-morph 2s ease-in-out infinite}
+#cpSyncOrb[data-state="sync"] #cpOrbCore{transform:scale(.86);background:#8aaaff;box-shadow:0 0 20px #8aaaff}
+#cpSyncOrb[data-state="offline"],#cpSyncOrb[data-state="error"]{border-color:rgba(255,114,114,.65);border-radius:18px}
+#cpSyncOrb[data-state="offline"] #cpOrbCore,#cpSyncOrb[data-state="error"] #cpOrbCore{background:var(--cp-red);box-shadow:0 0 15px rgba(255,114,114,.5);transform:scale(.8)}
+#cpSyncOrb[data-state="ok"]{border-color:rgba(100,224,163,.6)}
+#cpSyncOrb[data-state="ok"] #cpOrbCore{background:var(--cp-green);box-shadow:0 0 14px rgba(100,224,163,.65)}
+#cpSyncOrb[data-state="idle"] #cpOrbCore{background:#91a9b9;box-shadow:0 0 10px #91a9b955}
+#cpSyncOrb svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg);pointer-events:none}
+#cpOrbRing{fill:none;stroke:var(--cp-cyan);stroke-width:1.6;stroke-linecap:round;stroke-dasharray:10 140;transition:stroke .3s,stroke-dasharray .4s}
+#cpSyncOrb[data-state="upload"] #cpOrbRing{stroke:var(--cp-amber);stroke-dasharray:22 128;animation:cp-ring 1.1s linear infinite}
+#cpSyncOrb[data-state="download"] #cpOrbRing{stroke:var(--cp-cyan);stroke-dasharray:34 116;animation:cp-ring 1.4s linear infinite}
+#cpSyncOrb[data-state="sync"] #cpOrbRing{stroke:#8aaaff;stroke-dasharray:45 105;animation:cp-ring .9s linear infinite}
+#cpSyncOrb[data-state="offline"] #cpOrbRing,#cpSyncOrb[data-state="error"] #cpOrbRing{stroke:var(--cp-red);stroke-dasharray:28 122}
+#cpSyncOrb[data-state="ok"] #cpOrbRing{stroke:var(--cp-green);stroke-dasharray:82 68}
+#cpSyncLabel{max-width:180px;min-width:0;padding:9px 12px;border:1px solid var(--cp-line);border-radius:10px;background:rgba(10,24,34,.92);backdrop-filter:blur(14px);box-shadow:0 8px 24px #0002;transition:opacity .25s,transform .25s}
+#cpSyncLabel strong{display:block;font-size:11px;letter-spacing:.04em}#cpSyncLabel span{display:block;color:#8ea4b3;font-size:10px;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#cpSyncPopover{position:absolute;right:0;bottom:66px;width:min(310px,calc(100vw - 30px));padding:16px;border:1px solid rgba(143,182,200,.24);border-radius:14px;background:rgba(9,22,32,.97);box-shadow:0 18px 55px #0006;backdrop-filter:blur(18px);opacity:0;transform:translateY(8px) scale(.98);pointer-events:none;transition:opacity .22s,transform .22s}
+#chiaplastSyncDock[data-open="true"] #cpSyncPopover{opacity:1;transform:translateY(0) scale(1);pointer-events:auto}
+#cpSyncPopover strong{font-size:13px}#cpSyncPopover p{color:#9eb2bf;font-size:12px;line-height:1.5;margin:8px 0 12px;overflow-wrap:anywhere}
+.cp-dock-actions{display:flex;gap:8px}.cp-dock-actions button{flex:1;border:1px solid var(--cp-line);border-radius:8px;padding:9px 8px;background:#16303e;color:#e8f0f4;font-size:11px;font-weight:700;cursor:pointer}.cp-dock-actions button:hover{border-color:var(--cp-cyan)}
+#cpSyncManual{background:#175d66!important;border-color:#267d85!important}
+@keyframes cp-pulse{0%,100%{box-shadow:0 0 0 4px rgba(86,214,208,.08)}50%{box-shadow:0 0 0 8px rgba(86,214,208,.02)}}
+@keyframes cp-morph{0%,100%{transform:rotate(0deg) scale(1)}50%{transform:rotate(8deg) scale(1.035)}}
+@keyframes cp-ring{to{stroke-dashoffset:-150}}
+@keyframes cp-enter{from{opacity:0;transform:translateY(16px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media(max-width:700px){#chiaplastAuthGate{padding:12px}.cp-auth-shell{grid-template-columns:1fr;min-height:auto}.cp-auth-brand{padding:23px 25px 18px;border-right:0;border-bottom:1px solid var(--cp-line)}.cp-brand-symbol{width:43px;height:43px}.cp-brand-word{font-size:26px}.cp-auth-copy{margin:25px 0 10px}.cp-auth-copy h1{font-size:26px;margin:9px 0}.cp-auth-copy p{display:none}.cp-system-line{font-size:10px}.cp-auth-form-side{padding:26px}.cp-form-head{margin-bottom:18px}.cp-form-head h2{font-size:22px}.cp-auth-foot{margin-top:18px}#chiaplastSyncDock{right:12px;bottom:12px}#cpSyncLabel{display:none}#cpSyncOrb{width:48px;height:48px}}
+@media(prefers-reduced-motion:reduce){#chiaplastAuthGate *,#chiaplastSyncDock *{animation:none!important;transition:none!important}}
+</style>
 </head>
 <body>
+
+<div id="chiaplastAuthGate" role="dialog" aria-modal="true" aria-labelledby="cpAuthTitle">
+  <div class="cp-auth-shell">
+    <section class="cp-auth-brand">
+      <div class="cp-brand-mark">
+        <div class="cp-brand-symbol" aria-hidden="true">
+          <svg viewBox="0 0 48 48" width="31" height="31" fill="none"><path d="M7 35V13h6l11 14 11-14h6v22h-7V24L24 35l-10-11v11H7Z" fill="currentColor"/><path d="M6 41h36" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </div>
+        <div><div class="cp-brand-word">CHIA<span>PLAST</span></div><div class="cp-brand-sub">Industrial operations platform</div></div>
+      </div>
+      <div class="cp-auth-copy">
+        <div class="cp-kicker">CONTROL · MANTENIMIENTO · DATOS</div>
+        <h1 id="cpAuthTitle">La planta,<br>en control.</h1>
+        <p>Acceso al sistema integral de mantenimiento, operación y análisis industrial.</p>
+      </div>
+      <div class="cp-system-line"><span class="cp-live-dot"></span><span>CHIAPlAST STATISTICS <span style="opacity:.55">/</span> ACCESO SEGURO</span></div>
+    </section>
+    <section class="cp-auth-form-side">
+      <div class="cp-form-head"><div class="cp-kicker">ÁREA DE PERSONAL</div><h2>Iniciar sesión</h2><p>Introduzca las credenciales autorizadas para continuar.</p></div>
+      <form id="cpLoginForm">
+        <label class="cp-field" for="supabaseEmail">Correo electrónico</label>
+        <input class="cp-input" id="supabaseEmail" name="email" type="email" autocomplete="username" placeholder="usuario@chiaplast.com" required>
+        <label class="cp-field" for="supabasePassword">Contraseña</label>
+        <input class="cp-input" id="supabasePassword" name="password" type="password" autocomplete="current-password" placeholder="Ingrese su contraseña" required>
+        <button class="cp-auth-submit" id="supabaseSignIn" type="submit">ACCEDER AL SISTEMA <span aria-hidden="true">↗</span></button>
+        <div class="cp-auth-message" id="cpAuthMessage" role="status" aria-live="polite">Verificando conexión segura…</div>
+      </form>
+      <div class="cp-auth-foot">CHIAPlAST STATISTICS · Sistema de uso interno.<br>Los datos operativos se sincronizan al recuperar la conexión.</div>
+    </section>
+  </div>
+</div>
+<div id="chiaplastSyncDock" data-open="false">
+  <div id="cpSyncLabel"><strong id="cpSyncTitle">CONECTANDO</strong><span id="cpSyncSummary">Preparando sincronización</span></div>
+  <button id="cpSyncOrb" type="button" data-state="idle" aria-label="Estado de sincronización" aria-expanded="false" title="Estado de sincronización">
+    <svg viewBox="0 0 54 54" aria-hidden="true"><circle id="cpOrbRing" cx="27" cy="27" r="22"/></svg><span id="cpOrbCore"></span>
+  </button>
+  <section id="cpSyncPopover" aria-live="polite">
+    <strong id="cpSyncDetailTitle">Estado de sincronización</strong>
+    <p id="supabaseSyncStatus" data-kind="info">Preparando conexión con Supabase…</p>
+    <div class="cp-dock-actions">
+      <button id="cpSyncManual" type="button">Sincronizar ahora</button>
+      <button id="supabaseSignOut" type="button">Cerrar sesión</button>
+    </div>
+  </section>
+</div>
+
 <div id="bootLoader"><div class="spinner"></div><div class="muted">Cargando Chiaplast…</div></div>
 <div class="app">
 <aside class="sidebar" id="sidebar">
