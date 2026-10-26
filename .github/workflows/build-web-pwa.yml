@@ -3,6 +3,7 @@ name: Build and publish Chiaplast web PWA
 on:
   push:
     branches:
+      - main
       - feature/web-pwa
   workflow_dispatch:
 
