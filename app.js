@@ -1337,7 +1337,7 @@ const VIEW_CONFIG={
   predictivo:{title:'Predictivo',render:renderPredictive},
   correctivo:{title:'Correctivos / OT',render:renderWO},
   eventos:{title:'Fallas y eventos',render:renderEvents},
-  tarjetas:{title:'Base de máquinas',render:()=>{renderCards();renderChassis();}},
+  tarjetas:{title:'Base de máquinas',render:()=>{renderCards();}},
   historial:{title:'Historial',render:renderHistory},
   importar:{title:'Reporte diario'},
   mensual:{title:'Reporte mensual'},
@@ -1742,7 +1742,6 @@ function resetMachineDB(){
   toast('Catálogo restaurado');
 }
 function renderCards(){ renderMachineDB(); }
-function renderChassis(){}
 
 const EARLY_SIGNAL_WORDS=['ruido','vibracion','vibración','calentando','calienta','falseaba','falseo','intermitente','chispa','humo','olor','extraño','anomal','prealarm','pre-alarm','sobrecorriente','sobretemperatura'];
 
