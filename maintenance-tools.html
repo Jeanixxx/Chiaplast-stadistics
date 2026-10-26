@@ -2026,16 +2026,32 @@ function openNotesDB(){
   });
 }
 async function notesAll(){
-  const db=await openNotesDB();
-  return new Promise((resolve,reject)=>{const tx=db.transaction(NOTES_STORE,'readonly'),req=tx.objectStore(NOTES_STORE).getAll();req.onsuccess=()=>resolve(req.result||[]);req.onerror=()=>reject(req.error);tx.oncomplete=()=>db.close()});
+  const localDb=await openNotesDB();
+  return new Promise((resolve,reject)=>{
+    const tx=localDb.transaction(NOTES_STORE,'readonly'),req=tx.objectStore(NOTES_STORE).getAll();
+    req.onsuccess=()=>{
+      let local=req.result||[];
+      try{
+        if(window.parent!==window&&window.parent.ChiaplastMaintenanceBridge){
+          const remote=window.parent.ChiaplastMaintenanceBridge.getNotes()||[];
+          const byId=new Map(local.map(n=>[n.id,n]));
+          remote.forEach(n=>{const old=byId.get(n.id);byId.set(n.id,old?{...n,photos:old.photos||[]}:n)});
+          local=[...byId.values()];
+        }
+      }catch(_){}
+      resolve(local);
+    };
+    req.onerror=()=>reject(req.error);
+    tx.oncomplete=()=>localDb.close();
+  });
 }
 async function notesPut(note){
   const db=await openNotesDB();
-  return new Promise((resolve,reject)=>{const tx=db.transaction(NOTES_STORE,'readwrite');tx.objectStore(NOTES_STORE).put(note);tx.oncomplete=()=>{db.close();try{if(window.parent!==window&&window.parent.ChiaplastMaintenanceBridge)window.parent.ChiaplastMaintenanceBridge.saveNote(note)}catch(e){}resolve(true)};tx.onerror=()=>{db.close();reject(tx.error||new Error('No se pudo guardar la nota.'))};tx.onabort=()=>{db.close();reject(tx.error||new Error('Se canceló el guardado.'))}});
+  return new Promise((resolve,reject)=>{const tx=db.transaction(NOTES_STORE,'readwrite');tx.objectStore(NOTES_STORE).put(note);tx.oncomplete=()=>{db.close();resolve(true)};tx.onerror=()=>{db.close();reject(tx.error||new Error('No se pudo guardar la nota.'))};tx.onabort=()=>{db.close();reject(tx.error||new Error('Se canceló el guardado.'))}});
 }
 async function notesDelete(id){
   const db=await openNotesDB();
-  return new Promise((resolve,reject)=>{const tx=db.transaction(NOTES_STORE,'readwrite');tx.objectStore(NOTES_STORE).delete(id);tx.oncomplete=()=>{db.close();try{if(window.parent!==window&&window.parent.ChiaplastMaintenanceBridge)window.parent.ChiaplastMaintenanceBridge.deleteNote(id)}catch(e){}resolve(true)};tx.onerror=()=>{db.close();reject(tx.error)}});
+  return new Promise((resolve,reject)=>{const tx=db.transaction(NOTES_STORE,'readwrite');tx.objectStore(NOTES_STORE).delete(id);tx.oncomplete=()=>{db.close();resolve(true)};tx.onerror=()=>{db.close();reject(tx.error)}});
 }
 async function purgeExpiredNotes(){
   const all=await notesAll(),now=Date.now(),expired=all.filter(n=>!Number.isFinite(n.created)||now-n.created>=30*24*60*60*1000);
@@ -2103,37 +2119,7 @@ async function renderNotes(){
 async function deleteNote(id){if(!confirm('¿Eliminar esta nota y sus fotografías? Esta acción no se puede deshacer.'))return;try{const note=(await notesAll()).find(n=>n.id===id);if(note)deleteNoteEvidence(note);await notesDelete(id);await renderNotes();toast('Nota eliminada.')}catch(e){toast('No se pudo eliminar la nota.')}}
 function buildNotePrintHtml(n){
   const imgs=(n.photos||[]).map((p,i)=>'<figure><img src="'+p+'" alt="Evidencia '+(i+1)+'"><figcaption>Fotografía '+(i+1)+'</figcaption></figure>').join('');
-  return '<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+esc(n.title)+'</title><style>body{font:14px Arial,sans-serif;color:#182631;margin:28px}h1{font-size:22px}h2{font-size:15px;margin-top:22px}.meta{color:#566674;font-size:12px;border-bottom:2px solid #e0e6eb;padding-bottom:12px}p{white-space:pre-wrap;line-height:1.5}figure{margin:12px 0;page-break-inside:avoid}img{max-width:100%;max-height:520px;object-fit:contain}figcaption{font-size:11px;color:#566674}@media print{body{margin:12mm}button{display:none}}</style></head><body><h1>CHIAPLAST · Nota técnica</h1><h2>'+esc(n.title)+'</h2><div class="meta">Apartado: '+esc(n.area)+' · Máquina: '+esc(n.machine||'No especificada')+'<br>Fecha: '+esc(new Date(n.created).toLocaleString())+'<br>Conservación en la app hasta: '+esc(new Date(n.expires||n.created+30*24*60*60*1000).toLocaleDateString())+'</div><p>'+esc(n.text||'Sin observaciones adicionales.')+'</p><h2>Evidencias fotográficas</h2>'+imgs+'<p class="meta">Documento generado desde Chiaplast. Guarda este PDF fuera de la aplicación para conservarlo después del plazo de 30 días.</p>
-<script id="chiaplast-maintenance-bridge">
-(function(){
-  if(window.parent===window)return;
-  window.addEventListener('storage',function(e){
-    if(!e.key||['mtto_kanban','mtto_reminders','mtto_preventive_calendar','mtto_hist'].includes(e.key)||e.key.startsWith('mtto_pm_board_')){
-      const active=document.querySelector('.screen.active')?.id;
-      try{
-        if(active==='kanban')renderKanban();
-        if(active==='reminders')renderReminders();
-        if(active==='preventiveCalendar')renderPreventiveCalendar();
-        if(active==='preventiveBoard')renderPmBoard();
-        if(active==='menu'){renderHomeFollowup();renderDashboardMetrics();renderRecent()}
-        if(active==='notes')renderNotes();
-      }catch(_){}
-    }
-  });
-  window.addEventListener('message',function(e){
-    if(e.origin!==location.origin||!e.data)return;
-    if(e.data.type==='chiaplast-maintenance-refresh'){
-      try{
-        const active=document.querySelector('.screen.active')?.id;
-        if(active==='notes')renderNotes();
-        if(active==='menu'){renderHomeFollowup();renderDashboardMetrics();renderRecent()}
-      }catch(_){}
-    }
-  });
-})();
-</script>
-
-</body></html>';
+  return '<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+esc(n.title)+'</title><style>body{font:14px Arial,sans-serif;color:#182631;margin:28px}h1{font-size:22px}h2{font-size:15px;margin-top:22px}.meta{color:#566674;font-size:12px;border-bottom:2px solid #e0e6eb;padding-bottom:12px}p{white-space:pre-wrap;line-height:1.5}figure{margin:12px 0;page-break-inside:avoid}img{max-width:100%;max-height:520px;object-fit:contain}figcaption{font-size:11px;color:#566674}@media print{body{margin:12mm}button{display:none}}</style></head><body><h1>CHIAPLAST · Nota técnica</h1><h2>'+esc(n.title)+'</h2><div class="meta">Apartado: '+esc(n.area)+' · Máquina: '+esc(n.machine||'No especificada')+'<br>Fecha: '+esc(new Date(n.created).toLocaleString())+'<br>Conservación en la app hasta: '+esc(new Date(n.expires||n.created+30*24*60*60*1000).toLocaleDateString())+'</div><p>'+esc(n.text||'Sin observaciones adicionales.')+'</p><h2>Evidencias fotográficas</h2>'+imgs+'<p class="meta">Documento generado desde Chiaplast. Guarda este PDF fuera de la aplicación para conservarlo después del plazo de 30 días.</p></body></html>';
 }
 async function printNote(id){
   try{
@@ -2283,5 +2269,34 @@ setTimeout(()=>{
 },1500);
 setInterval(()=>{if(!document.hidden)purgeExpiredNotes().catch(()=>{})},60*60*1000);
 </script>
+<script id="chiaplast-maintenance-bridge">
+(function(){
+  if(window.parent===window)return;
+  window.addEventListener('storage',function(e){
+    if(!e.key||['mtto_kanban','mtto_reminders','mtto_preventive_calendar','mtto_hist'].includes(e.key)||e.key.startsWith('mtto_pm_board_')){
+      const active=document.querySelector('.screen.active')?.id;
+      try{
+        if(active==='kanban')renderKanban();
+        if(active==='reminders')renderReminders();
+        if(active==='preventiveCalendar')renderPreventiveCalendar();
+        if(active==='preventiveBoard')renderPmBoard();
+        if(active==='menu'){renderHomeFollowup();renderDashboardMetrics();renderRecent()}
+        if(active==='notes')renderNotes();
+      }catch(_){}
+    }
+  });
+  window.addEventListener('message',function(e){
+    if(e.origin!==location.origin||!e.data)return;
+    if(e.data.type==='chiaplast-maintenance-refresh'){
+      try{
+        const active=document.querySelector('.screen.active')?.id;
+        if(active==='notes')renderNotes();
+        if(active==='menu'){renderHomeFollowup();renderDashboardMetrics();renderRecent()}
+      }catch(_){}
+    }
+  });
+})();
+</script>
+
 </body>
 </html>
