@@ -77,6 +77,12 @@
 @media(max-width:700px){#chiaplastAuthGate{padding:12px}.cp-auth-shell{grid-template-columns:1fr;min-height:auto}.cp-auth-brand{padding:23px 25px 18px;border-right:0;border-bottom:1px solid var(--cp-line)}.cp-brand-symbol{width:43px;height:43px}.cp-brand-word{font-size:26px}.cp-auth-copy{margin:25px 0 10px}.cp-auth-copy h1{font-size:26px;margin:9px 0}.cp-auth-copy p{display:none}.cp-system-line{font-size:10px}.cp-auth-form-side{padding:26px}.cp-form-head{margin-bottom:18px}.cp-form-head h2{font-size:22px}.cp-auth-foot{margin-top:18px}#chiaplastSyncDock{right:12px;bottom:12px}#cpSyncLabel{display:none}#cpSyncOrb{width:48px;height:48px}}
 @media(prefers-reduced-motion:reduce){#chiaplastAuthGate *,#chiaplastSyncDock *{animation:none!important;transition:none!important}}
 </style>
+<style id="compact-topbar-actions">
+/* Acciones compactas de la barra superior */
+.topbar .actions .topbar-icon-btn{min-width:38px;padding:8px 10px;display:inline-flex;align-items:center;justify-content:center;gap:0;font-size:12px;font-weight:750;letter-spacing:.02em;white-space:nowrap}
+.topbar .actions .topbar-icon-btn:focus-visible{outline:2px solid var(--accent,#22d3ee);outline-offset:2px}
+@media(max-width:900px){.topbar .actions{display:flex;flex-wrap:wrap;gap:6px}.topbar .actions .topbar-icon-btn{min-width:36px;padding:7px 8px}}
+</style>
 </head>
 <body>
 
@@ -192,14 +198,14 @@
     </div>
   </div>
   <div class="actions">
-    <button class="btn" onclick="hardRefreshApp()" title="Recargar interfaz si se atora">↻ Refrescar</button>
-    <button class="btn" onclick="toggleFocusMode()" title="Ocultar menú lateral">Enfoque</button>
-    <button class="btn" onclick="undoLastChange()" title="Ctrl+Z">Deshacer</button>
-    <button class="btn" onclick="exportData()" title="Respaldo JSON">Exportar JSON</button>
-    <button class="btn" onclick="exportCSV()" title="Historial en CSV">Exportar CSV</button>
-    <button class="btn" onclick="exportPowerBI()" title="CSV plano para BI">Export BI</button>
-    <button class="btn" onclick="document.getElementById('importFile').click()">Importar</button>
-    <button class="btn primary" onclick="openModal('workOrder')" title="Ctrl+N">+ Nueva OT</button>
+    <button class="btn topbar-icon-btn" onclick="hardRefreshApp()" title="Recargar interfaz" aria-label="Recargar interfaz">↻</button>
+    <button class="btn topbar-icon-btn" onclick="toggleFocusMode()" title="Modo enfoque · ocultar menú" aria-label="Modo enfoque">◫</button>
+    <button class="btn topbar-icon-btn" onclick="undoLastChange()" title="Deshacer último cambio · Ctrl+Z" aria-label="Deshacer último cambio">↶</button>
+    <button class="btn topbar-icon-btn" onclick="exportData()" title="Exportar respaldo JSON" aria-label="Exportar respaldo JSON">JSON</button>
+    <button class="btn topbar-icon-btn" onclick="exportCSV()" title="Exportar historial CSV" aria-label="Exportar historial CSV">CSV</button>
+    <button class="btn topbar-icon-btn" onclick="exportPowerBI()" title="Exportar datos para Power BI" aria-label="Exportar datos para Power BI">BI</button>
+    <button class="btn topbar-icon-btn" onclick="document.getElementById('importFile').click()" title="Importar respaldo JSON" aria-label="Importar respaldo JSON">⇧</button>
+    <button class="btn primary topbar-icon-btn" onclick="openModal('workOrder')" title="Nueva orden de trabajo · Ctrl+N" aria-label="Nueva orden de trabajo">+ OT</button>
     <input id="importFile" type="file" accept=".json" style="display:none" onchange="importData(event)">
   </div>
 </div>
