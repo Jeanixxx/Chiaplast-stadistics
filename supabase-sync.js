@@ -132,8 +132,10 @@
 
   function isTuple(row) { return Array.isArray(row); }
   function tupleId(row) {
-    const item = row[row.length - 1];
-    return typeof item === 'string' && item.indexOf('__cloudid:') === 0 ? item.slice(10) : '';
+    const last = row[row.length - 1];
+    const prior = row[row.length - 2];
+    if (typeof last === 'string' && last.indexOf('__cloudid:') === 0) return last.slice(10);
+    return typeof prior === 'string' && prior.indexOf('__cloudid:') === 0 ? prior.slice(10) : '';
   }
   function tupleTime(row) {
     const item = row[row.length - 1];
@@ -279,6 +281,14 @@
       replacement = setTupleMeta(record, id, timestamp || '');
     } else {
       replacement = Object.assign({}, record || {}, { _supabaseId: id, _cloudUpdatedAt: timestamp || '' });
+      if (collection === 'machines') {
+        const existing = index >= 0 ? rows[index] : null;
+        replacement.runtime = existing?.runtime ?? 0;
+        replacement.cycles = existing?.cycles ?? 0;
+        replacement.availability = existing?.availability ?? 100;
+        replacement.powerKwh = existing?.powerKwh ?? 0;
+        replacement.lastPowerOutage = existing?.lastPowerOutage ?? '—';
+      }
     }
     if (index >= 0) rows[index] = replacement;
     else rows.push(replacement);
@@ -296,8 +306,13 @@
 
   function toCloudRow(item) {
     const record = item.record;
-    const machine = isTuple(record) ? '' : (record.machine || record.maquina || record.machineId || record.id || '');
-    const date = isTuple(record) ? String(record[0] || '') : String(record.date || record.fecha || record.date_created || '');
+    let machine = isTuple(record) ? '' : (record.machine || record.maquina || record.machineId || record.id || '');
+    let date = isTuple(record) ? '' : String(record.date || record.fecha || record.date_created || '');
+    if (isTuple(record)) {
+      if (item.collection === 'pm') { machine = String(record[0] || ''); date = String(record[3] || ''); }
+      else if (item.collection === 'parts') machine = String(record[4] || '');
+      else if (item.collection === 'history') { date = String(record[0] || ''); machine = String(record[2] || ''); }
+    }
     const updatedAt = item.updatedAt || new Date(0).toISOString();
     return {
       id: item.id,
