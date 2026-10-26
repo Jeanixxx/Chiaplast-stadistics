@@ -9,7 +9,7 @@ var $=function(id){return document.getElementById(id);};
 var escT=function(v){return typeof esc==='function'?esc(String(v==null?'':v)):String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});};
 var today=function(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
 var uid=function(){return window.crypto&&crypto.randomUUID?crypto.randomUUID():'mt-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,9);};
-var machines=function(){return window.LIVE_MACHINE_DB||[];};
+var machines=function(){return typeof LIVE_MACHINE_DB!=='undefined'?LIVE_MACHINE_DB:[];};
 var machineOptions=function(){return machines().map(function(m){return '<option value="'+escT(m.code)+'">'+escT(m.area)+' · '+escT(m.code)+'</option>';}).join('');};
 var areas=function(){return Array.from(new Set(machines().map(function(m){return m.area;})));};
 var areaOptions=function(){return areas().map(function(a){return '<option>'+escT(a)+'</option>';}).join('');};
