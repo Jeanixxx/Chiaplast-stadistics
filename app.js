@@ -217,6 +217,11 @@ let db=JSON.parse(localStorage.getItem('SL_CMMS_DB_v2')||'null')||seed;
 if(!db.meal) db.meal={employees:seedMealEmployees(),historial:[],config:{numSemana:1,nextId:20},semanaActual:[]};
 if(!db.keywords) db.keywords=['Estática','Resistencia de la selladora','Sello de fondo','Rodillo','Balero','Pirómetro','Cuchilla','Cabezal'];
 if(!db.negligencia) db.negligencia=[];
+if(!Array.isArray(db.kanban)) db.kanban=[];
+if(!Array.isArray(db.reminders)) db.reminders=[];
+if(!Array.isArray(db.technicalNotes)) db.technicalNotes=[];
+if(!Array.isArray(db.dailyChecks)) db.dailyChecks=[];
+if(!Array.isArray(db.pmChecks)) db.pmChecks=[];
 if(!db.crew) db.crew={personasTotal:0,horasTurno:8,indirectoPct:15,reservaEmergenciaPct:10};
 if(db.team){
  const drop=new Set(['Reporte diario','Carlos Méndez','Ana Torres','Luis Pérez','Sofía Ramírez']);
@@ -730,6 +735,7 @@ function save(){
   }catch(e){}
   _prevDbJson=JSON.stringify(db);
   localStorage.setItem('SL_CMMS_DB_v2',_prevDbJson);
+  try{ syncMaintenanceStorageFromDb(); }catch(e){}
   try{ invalidateHistoryCache(); }catch(e){}
   saveFinConfig();
 }
@@ -1329,8 +1335,63 @@ function clearMonthlyImport(){
   document.getElementById('monthlyPreview').innerHTML='';
 }
 
+/* Puente de las herramientas de mantenimiento con la base operativa sincronizada */
+function maintenanceJson(value,fallback=[]){
+  if(value==null)return fallback;
+  try{const parsed=JSON.parse(value);return parsed==null?fallback:parsed}catch(_){return fallback}
+}
+function syncMaintenanceStorageFromDb(){
+  const put=(key,value)=>{try{const raw=JSON.stringify(value);if(localStorage.getItem(key)!==raw)localStorage.setItem(key,raw)}catch(_){}};
+  put('mtto_kanban',Array.isArray(db.kanban)?db.kanban:[]);
+  put('mtto_reminders',Array.isArray(db.reminders)?db.reminders:[]);
+  put('mtto_hist',Array.isArray(db.dailyChecks)?db.dailyChecks:[]);
+  const pm=Array.isArray(db.pmChecks)?db.pmChecks:[];
+  put('mtto_preventive_calendar',pm.filter(item=>item&&item._syncKind!=='pmBoard'));
+  pm.filter(item=>item&&item._syncKind==='pmBoard'&&/^\\d{4}-\\d{2}$/.test(item.month||'')).forEach(item=>put('mtto_pm_board_'+item.month,item.board||{}));
+  const frame=document.getElementById('maintenanceToolsFrame');
+  try{if(frame&&frame.contentWindow)frame.contentWindow.postMessage({type:'chiaplast-maintenance-refresh'},location.origin)}catch(_){}
+}
+window.ChiaplastMaintenanceBridge={
+  saveKey(key,value){
+    let parsed=maintenanceJson(value,[]);
+    if(key==='mtto_kanban'){db.kanban=Array.isArray(parsed)?parsed:[];}
+    else if(key==='mtto_reminders'){db.reminders=Array.isArray(parsed)?parsed:[];}
+    else if(key==='mtto_hist'){db.dailyChecks=Array.isArray(parsed)?parsed:[];}
+    else if(key==='mtto_preventive_calendar'){
+      const boards=(db.pmChecks||[]).filter(item=>item&&item._syncKind==='pmBoard');
+      db.pmChecks=(Array.isArray(parsed)?parsed:[]).concat(boards);
+    }else if(/^mtto_pm_board_\\d{4}-\\d{2}$/.test(key)){
+      const month=key.slice('mtto_pm_board_'.length);
+      const boards=(db.pmChecks||[]).filter(item=>item&&item._syncKind==='pmBoard'&&item.month!==month);
+      if(value!=null)boards.push({id:'board:'+month,_syncKind:'pmBoard',month,board:parsed,updatedAt:new Date().toISOString()});
+      db.pmChecks=(db.pmChecks||[]).filter(item=>!item||item._syncKind!=='pmBoard').concat(boards);
+    }else return;
+    save();
+  },
+  saveNote(note){
+    if(!note||!note.id)return;
+    const record={...note,photos:[],evidenceLocalOnly:Array.isArray(note.photos)&&note.photos.length>0,updatedAt:new Date().toISOString()};
+    const list=Array.isArray(db.technicalNotes)?db.technicalNotes:[];
+    const index=list.findIndex(item=>item&&item.id===record.id);
+    if(index>=0)list[index]={...list[index],...record};else list.push(record);
+    db.technicalNotes=list;save();
+  },
+  deleteNote(id){db.technicalNotes=(db.technicalNotes||[]).filter(item=>item&&item.id!==id);save();},
+  getNotes(){return (db.technicalNotes||[]).map(item=>({...item,photos:[]}));}
+};
+function renderMaintenanceTools(){
+  const frame=document.getElementById('maintenanceToolsFrame');
+  if(!frame)return;
+  if(frame.dataset.loaded!=='true'){
+    frame.dataset.loaded='true';
+    syncMaintenanceStorageFromDb();
+    frame.src='maintenance-tools.html';
+  }
+}
+
 const VIEW_CONFIG={
   dashboard:{title:'Dashboard',render:renderDashboard},
+  maintenanceTools:{title:'Herramientas de mantenimiento',render:renderMaintenanceTools},
   semanaPlanta:{title:'Semana de la planta',render:renderSemanaPlanta},
   fichaMaquina:{title:'Ficha de máquina',render:renderFichaMaquina},
   preventivo:{title:'Preventivos',render:()=>{renderPm();renderPmRecommendations();}},
