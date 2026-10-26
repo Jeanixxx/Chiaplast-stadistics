@@ -1,4 +1,4 @@
-name: Build Chiaplast web PWA bundle
+name: Build and publish Chiaplast web PWA
 
 on:
   push:
@@ -8,6 +8,10 @@ on:
 
 permissions:
   contents: read
+
+concurrency:
+  group: chiaplast-web-pwa-pages
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -52,3 +56,22 @@ jobs:
           path: chiaplast-web-pwa.zip
           if-no-files-found: error
           retention-days: 30
+
+      - name: Upload website for GitHub Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      pages: write
+      id-token: write
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
