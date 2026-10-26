@@ -26,16 +26,18 @@ jobs:
           node-version: 22
           cache: npm
 
+      # npm install refreshes package-lock.json for Electron 43.x,
+      # the final Electron line that provides Windows x86 (ia32) builds.
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
-      - name: Build Windows installer
+      - name: Build Windows installers (64-bit and 32-bit)
         run: npm run build:windows
 
-      - name: Upload installer
+      - name: Upload installers
         uses: actions/upload-artifact@v4
         with:
-          name: chiaplast-windows-installer
+          name: chiaplast-windows-installers
           path: release/*.exe
           if-no-files-found: error
           retention-days: 30
