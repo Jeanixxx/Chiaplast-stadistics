@@ -1449,6 +1449,17 @@ function onSidePeriodChange(){
   updateDashPeriodLabel();
   render();
 }
+function shiftDashDate(dir){
+  const p=getDashPeriod();
+  const d=parseLocalDate(dashRefDate);
+  if(p==='day') d.setDate(d.getDate()+dir);
+  else if(p==='week') d.setDate(d.getDate()+dir*7);
+  else d.setMonth(d.getMonth()+dir);
+  dashRefDate=iso(d);
+  syncPeriodControls();
+  updateDashPeriodLabel();
+  render();
+}
 function setDashToday(){
   dashRefDate=iso(new Date());
   syncPeriodControls();
@@ -2645,6 +2656,20 @@ function importData(e){const file=e.target.files[0];if(!file)return;const r=new 
 // ================= ROL DE COMIDAS (rotación de tienda) =================
 const MEAL_DIAS=['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
 const MEAL_ABBR=['LUN','MAR','MIE','JUE','VIE','SAB','DOM'];
+function mPad(n){return n<10?'0'+n:''+n}
+function mParseISO(s){const p=s.split('-').map(Number);return new Date(p[0],p[1]-1,p[2])}
+function mAddDays(d,n){return new Date(d.getFullYear(),d.getMonth(),d.getDate()+n)}
+function mNumDia(d){const g=d.getDay();return g===0?7:g}
+function mProximoLunes(){const hoy=new Date();const n=mNumDia(hoy);const diff=n===1?0:(8-n);return mAddDays(new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate()),diff)}
+function mToDisplay(s){if(!s)return'—';const p=s.split('-');return p[2]+'/'+p[1]+'/'+p[0]}
+
+function showMealTab(name,btn){
+ document.querySelectorAll('#mealTabs .tab').forEach(x=>x.classList.remove('active'));btn.classList.add('active');
+ ['generar','empleados','historial'].forEach(v=>{document.getElementById('meal-'+v).style.display=v===name?'block':'none'});
+ if(name==='historial')renderMealHistorial();
+ if(name==='empleados')renderMealEmpleados();
+ if(name==='generar')renderMealBoard();
+}
 function mDisponible(e,nDia,abbr,numSemana){
  if(e.turnoNoche)return false;
  if(e.ausencias&&e.ausencias.toUpperCase().indexOf(abbr)!==-1)return false;
