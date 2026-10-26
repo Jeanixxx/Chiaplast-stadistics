@@ -1347,7 +1347,7 @@ function syncMaintenanceStorageFromDb(){
   put('mtto_hist',Array.isArray(db.dailyChecks)?db.dailyChecks:[]);
   const pm=Array.isArray(db.pmChecks)?db.pmChecks:[];
   put('mtto_preventive_calendar',pm.filter(item=>item&&item._syncKind!=='pmBoard'));
-  pm.filter(item=>item&&item._syncKind==='pmBoard'&&/^\\d{4}-\\d{2}$/.test(item.month||'')).forEach(item=>put('mtto_pm_board_'+item.month,item.board||{}));
+  pm.filter(item=>item&&item._syncKind==='pmBoard'&&/^\d{4}-\d{2}$/.test(item.month||'')).forEach(item=>put('mtto_pm_board_'+item.month,item.board||{}));
   const frame=document.getElementById('maintenanceToolsFrame');
   try{if(frame&&frame.contentWindow)frame.contentWindow.postMessage({type:'chiaplast-maintenance-refresh'},location.origin)}catch(_){}
 }
@@ -1360,7 +1360,7 @@ window.ChiaplastMaintenanceBridge={
     else if(key==='mtto_preventive_calendar'){
       const boards=(db.pmChecks||[]).filter(item=>item&&item._syncKind==='pmBoard');
       db.pmChecks=(Array.isArray(parsed)?parsed:[]).concat(boards);
-    }else if(/^mtto_pm_board_\\d{4}-\\d{2}$/.test(key)){
+    }else if(/^mtto_pm_board_\d{4}-\d{2}$/.test(key)){
       const month=key.slice('mtto_pm_board_'.length);
       const boards=(db.pmChecks||[]).filter(item=>item&&item._syncKind==='pmBoard'&&item.month!==month);
       if(value!=null)boards.push({id:'board:'+month,_syncKind:'pmBoard',month,board:parsed,updatedAt:new Date().toISOString()});
