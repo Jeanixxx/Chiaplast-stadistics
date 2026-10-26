@@ -77,38 +77,6 @@
 @media(max-width:700px){#chiaplastAuthGate{padding:12px}.cp-auth-shell{grid-template-columns:1fr;min-height:auto}.cp-auth-brand{padding:23px 25px 18px;border-right:0;border-bottom:1px solid var(--cp-line)}.cp-brand-symbol{width:43px;height:43px}.cp-brand-word{font-size:26px}.cp-auth-copy{margin:25px 0 10px}.cp-auth-copy h1{font-size:26px;margin:9px 0}.cp-auth-copy p{display:none}.cp-system-line{font-size:10px}.cp-auth-form-side{padding:26px}.cp-form-head{margin-bottom:18px}.cp-form-head h2{font-size:22px}.cp-auth-foot{margin-top:18px}#chiaplastSyncDock{right:12px;bottom:12px}#cpSyncLabel{display:none}#cpSyncOrb{width:48px;height:48px}}
 @media(prefers-reduced-motion:reduce){#chiaplastAuthGate *,#chiaplastSyncDock *{animation:none!important;transition:none!important}}
 </style>
-<style id="compact-topbar-actions">
-/* Acciones compactas de la barra superior */
-.topbar .actions .topbar-icon-btn{min-width:38px;padding:8px 10px;display:inline-flex;align-items:center;justify-content:center;gap:0;font-size:12px;font-weight:750;letter-spacing:.02em;white-space:nowrap}
-.topbar .actions .topbar-icon-btn:focus-visible{outline:2px solid var(--accent,#22d3ee);outline-offset:2px}
-@media(max-width:900px){.topbar .actions{display:flex;flex-wrap:wrap;gap:6px}.topbar .actions .topbar-icon-btn{min-width:36px;padding:7px 8px}}
-</style>
-
-<style id="dashboard-executive-layout">
-.dashboard-primary-grid{grid-template-columns:minmax(0,1.35fr) minmax(280px,1fr);align-items:stretch}
-.production-card{min-width:0}.production-chartbox{height:205px!important;max-height:205px}.downtime-cause-chartbox{height:250px!important;max-height:250px}
-.production-mini-kpis{grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:8px}
-.production-mini-kpis .card.kpi{padding:10px;min-width:0}.production-mini-kpis .label{font-size:11px;line-height:1.3}.production-mini-kpis .value{font-size:19px!important;margin-top:5px}.production-mini-kpis .sub{font-size:10px}
-.dashboard-period-note{font-size:11px;margin-top:-6px;margin-bottom:6px}
-.machine-disclosure>summary,.preventive-checklist-card>summary{display:flex;align-items:center;gap:12px;cursor:pointer;list-style:none;min-height:32px}
-.machine-disclosure>summary::-webkit-details-marker,.preventive-checklist-card>summary::-webkit-details-marker{display:none}
-.disclosure-title{font-weight:750;font-size:14px}.disclosure-subtitle{font-size:12px;color:var(--muted,#8492a6);flex:1}.disclosure-chevron{font-size:18px;color:var(--accent,#22d3ee);transition:transform .2s}
-details[open]>summary .disclosure-chevron{transform:rotate(45deg)}
-.machine-disclosure-content,.preventive-checklist-content{padding-top:14px}
-.dashboard-ranking-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
-.preventive-date-field{max-width:250px;margin-bottom:14px}
-.preventive-area-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-.preventive-area-card{border:1px solid var(--border,#293548);border-radius:10px;padding:12px;min-width:0}
-.preventive-area-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:9px;font-size:13px;font-weight:750}
-.preventive-machine-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
-.preventive-machine-item{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:7px;background:var(--surface-2,#111c2d);font-size:12px;cursor:pointer;min-width:0}
-.preventive-machine-item input{accent-color:var(--green,#22c55e);width:15px;height:15px;flex:0 0 auto}
-.preventive-machine-item.is-done span{text-decoration:line-through;opacity:.65}
-.preventive-local-note{font-size:11px;margin-top:12px}
-@media(max-width:850px){.dashboard-primary-grid{grid-template-columns:1fr}.dashboard-ranking-grid{grid-template-columns:1fr}.preventive-area-grid{grid-template-columns:1fr}}
-@media(max-width:520px){.production-chartbox{height:180px!important}.production-mini-kpis .card.kpi{padding:7px}.production-mini-kpis .value{font-size:16px!important}.preventive-machine-list{grid-template-columns:repeat(2,minmax(0,1fr))}.disclosure-subtitle{display:none}}
-</style>
-
 </head>
 <body>
 
@@ -254,28 +222,15 @@ details[open]>summary .disclosure-chevron{transform:rotate(45deg)}
     <div class="actions" style="margin:0;gap:4px">
       <button class="btn" style="padding:8px 10px" onclick="shiftDashDate(-1)">←</button>
       <button class="btn" style="padding:8px 10px" onclick="setDashToday()">Hoy</button>
+      <button class="btn" id="btnClearMachine" style="display:none;padding:8px 10px" onclick="clearMachineSelection()" title="Quitar filtro de máquina">× Máquina</button>
       <button class="btn" style="padding:8px 10px" onclick="shiftDashDate(1)">→</button>
     </div>
     <span class="muted" id="sidePeriodLabel" style="font-size:11px;align-self:center"></span>
   </div>
+  <div id="dashContextLabel" class="dashboard-context-label"></div>
 </div>
 
 <section id="dashboard" class="view active">
-  <div class="grid kpis" id="kpis"></div>
-
-  <!-- Barra de contexto (periodo global, sincronizada con sidebar) -->
-  <div class="card mt" id="dashPeriodBar">
-    <div class="flex" style="flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between">
-      <div class="muted" id="dashContextLabel" style="font-size:13px"></div>
-      <div class="actions" style="margin:0">
-        <button class="btn" onclick="shiftDashDate(-1)">← Anterior</button>
-        <button class="btn" onclick="setDashToday()">Hoy</button>
-        <button class="btn" onclick="shiftDashDate(1)">Siguiente →</button>
-        <button class="btn" id="btnClearMachine" style="display:none" onclick="clearMachineSelection()">✕ Ver todas las máquinas</button>
-      </div>
-    </div>
-  </div>
-
   <!-- Dashboard ejecutivo simplificado -->
   <div id="dashAllPanel">
     <div class="grid layout2 mt dashboard-primary-grid">
