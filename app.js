@@ -1394,7 +1394,6 @@ function renderDashboard(){
     if(allPanel) allPanel.style.display='block';
     if(machinePanel) machinePanel.style.display='none';
   }
-  renderKpis();
   if(!selectedMachine){
     renderMachineTiles();
     renderCharts();
@@ -1503,8 +1502,6 @@ function updateDashPeriodLabel(){
   }
   const areaTxt=isAllAreas()?'Toda la planta':currentArea;
   const machTxt=selectedMachine||'Todas las máquinas';
-  const side=document.getElementById('sidePeriodLabel');
-  if(side) side.textContent=txt;
   const ctx=document.getElementById('dashContextLabel');
   if(ctx) ctx.innerHTML=`<span class="ctx-pill ${pillClass}">📅 ${pillLabel}</span> <strong>${esc(areaTxt)}</strong> · ${esc(machTxt)} · ${esc(txt)}`;
   const btn=document.getElementById('btnClearMachine');
@@ -1519,71 +1516,38 @@ function clearMachineSelection(){
   render();
 }
 
-function renderKpis(){
- const ms=machineFilter();
- const period=getDashPeriod();
- const scopeIds=new Set(MACHINES());
- const areaEvs=eventsInPeriod(selectedMachine||null, period, true, dashRefDate);
- const open=db.workOrders.filter(x=>{
-   if(x.status==='Cerrada') return false;
-   if(selectedMachine && x.machine!==selectedMachine) return false;
-   if(!scopeIds.has(x.machine)) return false;
-   return true;
- }).length;
- const downtimeH=(downtimeMinutes(areaEvs)/60);
- const alerts=db.predictive.filter(x=>{
-   if(x[6]==='Normal') return false;
-   if(selectedMachine && x[1]!==selectedMachine) return false;
-   if(!scopeIds.has(x[1])) return false;
-   return true;
- }).length;
- const totalMin=periodMinutes(period, dashRefDate);
- const avgAvail=ms.length? (ms.reduce((a,m)=>{
-   const mins=downtimeMinutes(eventsInPeriod(m.id,period,false,dashRefDate));
-   return a + Math.max(0,100-(mins/totalMin*100));
- },0)/ms.length) : 100;
- const hybrid=productionHybrid(areaEvs);
- const prod=hybrid;
- const periodLbl={day:'día',week:'semana',month:'mes'}[period]||period;
- const scopeLbl=selectedMachine||(isAllAreas()?'planta':currentArea);
- const wasteSub=hybrid.useReported
-   ? 'Reporte diario (Dato1−Dato2)'
-   : 'Estimado: capacidad × paro';
- const wasteHint=hybrid.useReported
-   ? 'Método A: max(Dato1)−max(Dato2) por máquina/día del reporte diario. Estimado capacidad×paro: '+hybrid.estimated.waste.toLocaleString('es-MX',{maximumFractionDigits:0})+' kg'
-   : 'Método B: Σ (kg/día de la máquina × minutos_paro/1440). Puede diferir del reporte diario.';
- const kpisEl=document.getElementById('kpis');
- if(!kpisEl) return;
- kpisEl.innerHTML=[
-  ['Disponibilidad',avgAvail.toFixed(1)+'%','Promedio · '+scopeLbl,'100% − (minutos de paro ÷ minutos del periodo) × 100, promediado por máquina'],
-  ['OT abiertas',open,'Correctivos pendientes','Órdenes de trabajo con estado distinto de Cerrada en el alcance actual'],
-  ['Paro',downtimeH.toFixed(1)+' h','En el '+periodLbl,'Suma de minutos de eventos del filtro ÷ 60'],
-  ['Kg desperdiciados',prod.waste.toLocaleString('es-MX',{maximumFractionDigits:0}),wasteSub,wasteHint],
-  ['Eventos',areaEvs.length,'En el periodo filtrado','Cantidad de fallas/eventos registrados en el alcance y periodo'],
-  ['Máquinas',ms.filter(x=>x.status==='Operando').length+'/'+ms.length,'En el alcance actual','Equipos Operando / total en área o planta filtrada']
- ].map(x=>`<div class="card kpi" title="${esc(x[3])}"><div class="label">${x[0]}</div><div class="value">${x[1]}</div><div class="sub">${x[2]}</div><div class="hint">${esc(x[3])}</div></div>`).join('');
-}
 function renderMachineTiles(){
- const period=getDashPeriod();
- const totalMin=periodMinutes(period, dashRefDate);
- document.getElementById('machineTiles').innerHTML=machineFilter().map(m=>{
-  const mins=downtimeMinutes(eventsInPeriod(m.id,period,false,dashRefDate));
-  const pct=Math.min(100,(mins/totalMin*100));
-  const avail=Math.max(0,100-pct);
-  const stops=eventsInPeriod(m.id,period,false,dashRefDate).length;
-  const prod=productionFromEvents(eventsInPeriod(m.id,period,false,dashRefDate));
-  const dailyT=m.dailyTarget!=null?m.dailyTarget:(MACHINE_TARGETS[m.id]||0);
-  return `<div class="machine-tile" style="cursor:pointer" onclick="document.getElementById('machineSelect').value='${m.id}';document.getElementById('machineSelect').dispatchEvent(new Event('change'))">
-    <div class="flex"><strong>${esc(m.id)}</strong>${badge(m.status)}</div>
-    <div class="muted" style="margin-top:7px;font-size:11px">${stops} evento(s) • ${(mins/60).toFixed(1)} h paro</div>
-    <div class="muted" style="font-size:11px">Kg: ${prod.actual.toLocaleString('es-MX')} / ${prod.target.toLocaleString('es-MX')} • desperdicio ${prod.waste.toLocaleString('es-MX')}</div>
-    <div class="muted" style="font-size:10px">Objetivo diario: ${dailyT.toLocaleString('es-MX')} kg</div>
-    <div style="margin-top:8px"><div class="flex" style="font-size:10px"><span>% parado</span><strong>${pct.toFixed(1)}%</strong></div>
-    <div class="progress"><span style="width:${pct}%;background:${pct>15?'var(--red)':pct>5?'var(--yellow)':'var(--green)'}"></span></div></div>
-    <small>Disponibilidad: ${avail.toFixed(1)}%</small>
-  </div>`;
- }).join('')||'<div class="empty">Sin máquinas en el área</div>';
+  const root=document.getElementById('machineTiles');
+  if(!root)return;
+  const period=getDashPeriod();
+  const totalMin=Math.max(1,periodMinutes(period,dashRefDate));
+  const machines=machineFilter();
+  root.innerHTML=machines.map(machine=>{
+    const events=eventsInPeriod(machine.id,period,false,dashRefDate);
+    const minutes=downtimeMinutes(events);
+    const stopPct=Math.min(100,minutes/totalMin*100);
+    const production=productionFromEvents(events);
+    const target=Number(machine.dailyTarget??MACHINE_TARGETS[machine.id])||0;
+    return `<button type="button" class="machine-tile" data-machine="${escAttr(machine.id)}" aria-label="Abrir detalle de ${escAttr(machine.id)}">
+      <span class="machine-title"><strong>${esc(machine.id)}</strong>${badge(machine.status)}</span>
+      <span class="machine-metric">${events.length} eventos · ${(minutes/60).toFixed(1)} h de paro</span>
+      <span class="machine-metric">Real ${Math.round(production.actual).toLocaleString('es-MX')} / ${Math.round(production.target).toLocaleString('es-MX')} kg</span>
+      <span class="machine-metric">Desperdicio ${Math.round(production.waste).toLocaleString('es-MX')} kg · Objetivo diario ${target.toLocaleString('es-MX')} kg</span>
+      <span class="machine-progress"><span class="flex" style="font-size:10px"><span>Tiempo de paro</span><strong>${stopPct.toFixed(1)}%</strong></span>
+        <span class="progress"><span style="width:${stopPct}%;background:${stopPct>15?'var(--red)':stopPct>5?'var(--yellow)':'var(--green)'}"></span></span>
+      </span>
+    </button>`;
+  }).join('')||'<div class="empty">No hay máquinas para el área seleccionada.</div>';
+  root.onclick=event=>{
+    const tile=event.target.closest('button[data-machine]');
+    if(!tile||!root.contains(tile))return;
+    const select=document.getElementById('machineSelect');
+    if(!select)return;
+    select.value=tile.dataset.machine;
+    select.dispatchEvent(new Event('change',{bubbles:true}));
+  };
 }
+
 function renderPm(){
  const scopeIds=new Set(MACHINES());
  const rows=db.pm.map((r,i)=>({r,i})).filter(({r})=>{
@@ -2454,7 +2418,6 @@ function setMachinePeriod(p,btn){
   if(btn) btn.classList.add('active');
   syncPeriodControls();
   updateDashPeriodLabel();
-  renderKpis();
   renderMachineDetail();
   // También refresca pestañas que dependen del periodo
   renderWO(); renderEvents(); renderHistory();
