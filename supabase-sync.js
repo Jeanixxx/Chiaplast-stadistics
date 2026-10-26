@@ -357,7 +357,9 @@
     const updatedAt = item.updatedAt || new Date(0).toISOString();
     return {
       id: item.id,
-      tipo: item.type,
+      // El esquema existente puede limitar tipo a falla/diario/mensual.
+      // La colección real se conserva en datos.collection; diario funciona como sobre genérico.
+      tipo: 'diario',
       fecha_reporte: /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : new Date().toISOString().slice(0, 10),
       area: (isTuple(record) ? '' : (record.area || '')) || areaFor(machine),
       maquina: machine,
@@ -420,7 +422,8 @@
   function tombstoneRow(item) {
     return {
       id: item.id,
-      tipo: 'eliminado',
+      // Tombstone compatible con la restricción actual de tipo en Supabase.
+      tipo: 'diario',
       fecha_reporte: new Date().toISOString().slice(0, 10),
       area: '',
       maquina: '',
