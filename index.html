@@ -146,6 +146,13 @@
       </div>
     </div>
 
+    <div class="nav-group open" data-group="operacion">
+      <button type="button" class="nav-group-toggle" onclick="toggleNavGroup(this)">Mantenimiento operativo <span>▾</span></button>
+      <div class="nav-group-body">
+        <button data-view="maintenanceTools">Chequeos, Kanban y calendario</button>
+      </div>
+    </div>
+
     <div class="nav-group open" data-group="rrhh">
       <button type="button" class="nav-group-toggle" onclick="toggleNavGroup(this)">👥 Recurso humano <span>▾</span></button>
       <div class="nav-group-body">
@@ -1053,6 +1060,16 @@ Ejemplo:
     </p>
   </div>
 </section>
+<section id="maintenanceTools" class="view">
+  <div class="card" style="padding:0;overflow:hidden">
+    <div style="display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:16px 18px;border-bottom:1px solid var(--line)">
+      <div><h2 style="margin:0 0 5px">Herramientas de mantenimiento</h2><p class="muted" style="margin:0;font-size:12px">Chequeos diarios y preventivos, calendario mensual de máquinas, Kanban, recordatorios y notas técnicas con evidencia.</p></div>
+      <button class="btn" type="button" onclick="navigateToView('dashboard')">Volver a estadísticas</button>
+    </div>
+    <iframe id="maintenanceToolsFrame" title="Herramientas operativas de mantenimiento Chiaplast" src="about:blank" loading="lazy" style="display:block;width:100%;height:calc(100vh - 235px);min-height:680px;border:0;background:var(--bg)"></iframe>
+  </div>
+</section>
+
 </main>
 </div>
 
