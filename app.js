@@ -1403,6 +1403,16 @@ window.ChiaplastMaintenanceBridge={
     if(index>=0)list[index]={...list[index],...record};else list.push(record);
     db.technicalNotes=list;save();
   },
+  saveNotes(notes){
+    const list=Array.isArray(db.technicalNotes)?db.technicalNotes:[];
+    (Array.isArray(notes)?notes:[]).forEach(note=>{
+      if(!note||!note.id)return;
+      const record={...note,photos:[],evidenceLocalOnly:Array.isArray(note.photos)&&note.photos.length>0,updatedAt:new Date().toISOString()};
+      const index=list.findIndex(item=>item&&item.id===record.id);
+      if(index>=0)list[index]={...list[index],...record};else list.push(record);
+    });
+    db.technicalNotes=list;save();
+  },
   deleteNote(id){db.technicalNotes=(db.technicalNotes||[]).filter(item=>item&&item.id!==id);save();},
   getNotes(){return (db.technicalNotes||[]).map(item=>({...item,photos:[]}));}
 };
