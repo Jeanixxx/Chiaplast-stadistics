@@ -2437,8 +2437,8 @@ function renderPreventiveChecklist(){
   dateInput.onchange=()=>renderPreventiveChecklist();
   const date=dateInput.value,state=readPreventiveChecklist(date),root=document.getElementById('preventiveAreaChecklist');
   if(!root)return;
-  const areaByMachine=new Map((LIVE_MACHINE_DB||MACHINE_DB).map(m=>[m.code,m.area])),grouped={};
-  MACHINES().forEach(id=>{const area=areaByMachine.get(id)||'Otras';(grouped[area]||(grouped[area]=[])).push(id);});
+  const grouped={};
+  (LIVE_MACHINE_DB||MACHINE_DB).forEach(row=>{if(!row||!row.code)return;const area=row.area||'Otras';(grouped[area]||(grouped[area]=[])).push(row.code);});
   root.innerHTML=Object.entries(grouped).map(([area,machines])=>{
     const done=machines.filter(m=>state[m]).length;
     return `<section class="preventive-area-card"><div class="preventive-area-head"><span>${esc(area)}</span><span class="badge ${done===machines.length?'b-ok':'b-warn'}">${done}/${machines.length}</span></div><div class="preventive-machine-list">${machines.map(m=>`<label class="preventive-machine-item ${state[m]?'is-done':''}"><input type="checkbox" data-machine="${escAttr(m)}" ${state[m]?'checked':''} onchange="togglePreventiveMachine(this.dataset.machine,this.checked)"><span>${esc(m)}</span></label>`).join('')}</div></section>`;
