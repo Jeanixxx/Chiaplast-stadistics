@@ -1114,13 +1114,6 @@ function durationToMinutes(v){
   return p.minutes;
 }
 function durationToHours(v){return durationToMinutes(v)/60}
-function getISOWeek(date){
-  const d=new Date(Date.UTC(date.getFullYear(),date.getMonth(),date.getDate()));
-  const day=d.getUTCDay()||7;
-  d.setUTCDate(d.getUTCDate()+4-day);
-  const yearStart=new Date(Date.UTC(d.getUTCFullYear(),0,1));
-  return Math.ceil((((d-yearStart)/86400000)+1)/7);
-}
 function clearWeeklyImport(){
   document.getElementById('weeklyPaste').value='';
   document.getElementById('weeklyPreview').innerHTML='';
@@ -1456,18 +1449,6 @@ function onSidePeriodChange(){
   updateDashPeriodLabel();
   render();
 }
-function onDashDateChange(){ onSidePeriodChange(); }
-function shiftDashDate(dir){
-  const p=getDashPeriod();
-  const d=parseLocalDate(dashRefDate);
-  if(p==='day') d.setDate(d.getDate()+dir);
-  else if(p==='week') d.setDate(d.getDate()+dir*7);
-  else d.setMonth(d.getMonth()+dir);
-  dashRefDate=iso(d);
-  syncPeriodControls();
-  updateDashPeriodLabel();
-  render();
-}
 function setDashToday(){
   dashRefDate=iso(new Date());
   syncPeriodControls();
@@ -1762,21 +1743,6 @@ function resetMachineDB(){
 }
 function renderCards(){ renderMachineDB(); }
 function renderChassis(){}
-function toggleCard(){}
-function predecirProximaFalla(machineId){
-  const eventos=(db.events||[]).filter(e=>e.machine===machineId && e.date).map(e=>({d:parseLocalDate(e.date),e})).filter(x=>!isNaN(x.d)).sort((a,b)=>a.d-b.d);
-  if(eventos.length<3) return null;
-  let sum=0,count=0;
-  for(let i=1;i<eventos.length;i++){
-    const diff=(eventos[i].d-eventos[i-1].d)/(1000*60*60*24);
-    if(diff>0 && diff<365){ sum+=diff; count++; }
-  }
-  if(!count) return null;
-  const promedio=sum/count;
-  const ultima=eventos[eventos.length-1].d;
-  const proxima=new Date(ultima.getTime()+promedio*24*60*60*1000);
-  return {promedio:+promedio.toFixed(1), ultima:iso(ultima), proxima:iso(proxima), n:eventos.length};
-}
 
 const EARLY_SIGNAL_WORDS=['ruido','vibracion','vibración','calentando','calienta','falseaba','falseo','intermitente','chispa','humo','olor','extraño','anomal','prealarm','pre-alarm','sobrecorriente','sobretemperatura'];
 
@@ -2680,20 +2646,6 @@ function importData(e){const file=e.target.files[0];if(!file)return;const r=new 
 // ================= ROL DE COMIDAS (rotación de tienda) =================
 const MEAL_DIAS=['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
 const MEAL_ABBR=['LUN','MAR','MIE','JUE','VIE','SAB','DOM'];
-function mPad(n){return n<10?'0'+n:''+n}
-function mParseISO(s){const p=s.split('-').map(Number);return new Date(p[0],p[1]-1,p[2])}
-function mAddDays(d,n){return new Date(d.getFullYear(),d.getMonth(),d.getDate()+n)}
-function mNumDia(d){const g=d.getDay();return g===0?7:g}
-function mProximoLunes(){const hoy=new Date();const n=mNumDia(hoy);const diff=n===1?0:(8-n);return mAddDays(new Date(hoy.getFullYear(),hoy.getMonth(),hoy.getDate()),diff)}
-function mToDisplay(s){if(!s)return'—';const p=s.split('-');return p[2]+'/'+p[1]+'/'+p[0]}
-
-function showMealTab(name,btn){
- document.querySelectorAll('#mealTabs .tab').forEach(x=>x.classList.remove('active'));btn.classList.add('active');
- ['generar','empleados','historial'].forEach(v=>{document.getElementById('meal-'+v).style.display=v===name?'block':'none'});
- if(name==='historial')renderMealHistorial();
- if(name==='empleados')renderMealEmpleados();
- if(name==='generar')renderMealBoard();
-}
 function mDisponible(e,nDia,abbr,numSemana){
  if(e.turnoNoche)return false;
  if(e.ausencias&&e.ausencias.toUpperCase().indexOf(abbr)!==-1)return false;
