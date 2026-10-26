@@ -3,6 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Gestión y análisis de mantenimiento industrial de Chiaplast.">
+<meta name="theme-color" content="#155e75">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./icons/chiaplast.svg" type="image/svg+xml">
 <title>Chiaplast · Gestión integral</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -967,5 +971,16 @@ Ejemplo:
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="app.js"></script>
 <script src="supabase-sync.js"></script>
+<script>
+// El service worker solo se activa en HTTP(S); nunca interviene en llamadas a Supabase.
+if (location.protocol === "https:" || location.protocol === "http:") {
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("./sw.js", { scope: "./" })
+        .catch(error => console.warn("[Chiaplast PWA] No se pudo registrar el service worker:", error));
+    });
+  }
+}
+</script>
 </body>
 </html>
