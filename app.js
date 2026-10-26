@@ -2486,6 +2486,7 @@ function renderCharts(){
   syncPeriodControls();
   const period=getDashPeriod();
   const areaEvents=eventsInPeriod(null,period,true,dashRefDate);
+  const scopeIds=new Set(MACHINES());
 
   // Paros por causa: solo el periodo seleccionado.
   const types={};areaEvents.forEach(x=>types[x.type]=(types[x.type]||0)+(Number(x.minutes)||0)/60);
@@ -2496,9 +2497,9 @@ function renderCharts(){
 
   // Producción útil real frente al objetivo.
   const prod=productionFromEvents(areaEvents);
-  const prodCtx=document.getElementById('productionDonut');
+  const prodCtx=document.getElementById('productionCompareChart');
   if(prodCtx){
-    charts.productionDonut=new Chart(prodCtx,{type:'bar',data:{labels:['Kg'],datasets:[
+    charts.productionCompareChart=new Chart(prodCtx,{type:'bar',data:{labels:['Kg'],datasets:[
       {label:'Objetivo',data:[prod.target],backgroundColor:'#64748b',borderRadius:4},
       {label:'Real útil',data:[prod.actual],backgroundColor:'#22c55e',borderRadius:4}
     ]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:10,font:{size:10}}}},scales:{x:{beginAtZero:true,ticks:{font:{size:10}}},y:{grid:{display:false}}}}});
@@ -2516,7 +2517,7 @@ function renderCharts(){
   if(incidentEl)incidentEl.innerHTML=top.length?top.map(([k,n])=>`<div class="item"><div class="flex"><span style="font-size:12px">${esc(k)}</span><span class="badge b-warn">${n}×</span></div></div>`).join(''):'<div class="empty">Sin incidencias en este periodo</div>';
 
   const alertEl=document.getElementById('activeAlerts');
-  if(alertEl)alertEl.innerHTML=db.predictive.filter(x=>(!selectedMachine||x[1]===selectedMachine)&&x[6]!=='Normal').map(x=>`<div class="alert"><strong>${esc(x[1])} • ${esc(x[2])}</strong><br>${esc(x[3])} ${esc(x[4])} • ${esc(x[6])}</div>`).join('')||'<div class="success">No hay alertas predictivas fuera de normal.</div>';
+  if(alertEl)alertEl.innerHTML=db.predictive.filter(x=>scopeIds.has(x[1])&&(!selectedMachine||x[1]===selectedMachine)&&x[6]!=='Normal').map(x=>`<div class="alert"><strong>${esc(x[1])} • ${esc(x[2])}</strong><br>${esc(x[3])} ${esc(x[4])} • ${esc(x[6])}</div>`).join('')||'<div class="success">No hay alertas predictivas fuera de normal.</div>';
   renderEventRankings();
   renderPreventiveChecklist();
 }
