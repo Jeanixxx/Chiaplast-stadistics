@@ -1,10 +1,10 @@
 /* Chiaplast PWA: cachea solo la interfaz estática. Nunca almacena respuestas de Supabase/Auth. */
 const CACHE_PREFIX = "chiaplast-shell-";
-const CACHE_NAME = CACHE_PREFIX + "v2";
+const CACHE_NAME = CACHE_PREFIX + "v3";
 const SHELL = [
   "./",
   "./index.html",
-  "./maintenance-tools.html",
+  "./maintenance-tools.js",
   "./styles.css",
   "./app.js",
   "./supabase-sync.js",
