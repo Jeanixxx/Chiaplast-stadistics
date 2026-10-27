@@ -241,3 +241,61 @@ details[open]>summary .disclosure-chevron{transform:rotate(45deg)}
 @keyframes cp-enter{from{opacity:0;transform:translateY(16px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
 @media(max-width:700px){#chiaplastAuthGate{padding:12px}.cp-auth-shell{grid-template-columns:1fr;min-height:auto}.cp-auth-brand{padding:23px 25px 18px;border-right:0;border-bottom:1px solid var(--cp-line)}.cp-brand-symbol{width:43px;height:43px}.cp-brand-word{font-size:26px}.cp-auth-copy{margin:25px 0 10px}.cp-auth-copy h1{font-size:26px;margin:9px 0}.cp-auth-copy p{display:none}.cp-system-line{font-size:10px}.cp-auth-form-side{padding:26px}.cp-form-head{margin-bottom:18px}.cp-form-head h2{font-size:22px}.cp-auth-foot{margin-top:18px}#chiaplastSyncDock{right:12px;bottom:12px}#cpSyncLabel{display:none}#cpSyncOrb{width:48px;height:48px}}
 @media(prefers-reduced-motion:reduce){#chiaplastAuthGate *,#chiaplastSyncDock *{animation:none!important;transition:none!important}}
+
+/* Tablero mensual de preventivos + puntos de revisión (copiado de Informes-Chiaplast-) */
+.pm-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin:12px 0}
+.pm-month{display:flex;align-items:center;gap:6px}.pm-month strong{min-width:150px;text-align:center}
+.pm-date{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+.pm-actions{display:flex;flex-wrap:wrap;gap:8px;margin-left:auto}
+.pm-summary{display:flex;align-items:center;gap:12px;margin-bottom:14px;padding:12px 14px;background:var(--panel);border:1px solid var(--line);border-radius:12px}
+.pm-summary small{color:var(--muted);white-space:nowrap}
+.pm-track{height:12px;border-radius:6px;background:var(--panel2);overflow:hidden;flex:1}
+.pm-fill{height:100%;background:var(--green,#22c55e);border-radius:6px;transition:width .25s}
+.pm-plant{display:grid;gap:14px;grid-template-columns:minmax(0,1fr)}
+.pm-zone{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;min-width:0}
+.pm-zone-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+.pm-zone-head h3{margin:0;font-size:18px;font-style:italic}.pm-zone-head span{font:12px ui-monospace,Consolas,monospace;color:var(--muted)}
+.pm-scroll{overflow-x:auto}
+.pm-grid{display:grid;gap:6px;grid-template-columns:repeat(var(--cols),minmax(58px,1fr))}
+.pm-cell{position:relative;min-height:58px;padding:6px 2px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--text);font-size:11px;font-weight:800;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer}
+.pm-cell.is-long{font-size:9.5px;letter-spacing:-.2px}
+.pm-cell small{font-size:10px;font-weight:700;color:var(--muted);min-height:12px;white-space:nowrap}
+.pm-cell.is-done{background:rgba(19,128,74,.16);border-color:var(--green,#22c55e)}
+.pm-cell.is-done small{color:var(--green,#22c55e)}
+.pm-cell.is-done::after{content:"✓";position:absolute;top:2px;right:5px;color:var(--green,#22c55e);font-size:13px;font-weight:900}
+.pm-group{grid-column:span var(--span);border:1px solid var(--line);border-radius:8px;padding:6px;background:var(--bg)}
+.pm-group>b{display:block;text-align:center;font-size:12px;margin-bottom:6px}
+.pm-subs{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:6px}
+.pm-stats{margin-top:22px}
+.pm-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px}
+.pm-kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;min-width:0}
+.pm-kpi span{display:block;font:12px ui-monospace,Consolas,monospace;color:var(--muted)}
+.pm-kpi b{display:block;font-size:30px;line-height:1;margin:7px 0 4px}.pm-kpi small{color:var(--muted);font-size:13px}
+.pm-panels{display:grid;gap:14px;align-items:start;grid-template-columns:repeat(2,minmax(0,1fr))}
+.pm-panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;min-width:0}
+.pm-panel h3{margin:0 0 10px;font-size:16px}
+.pm-row{display:grid;grid-template-columns:64px minmax(0,1fr) 84px;gap:10px;align-items:center;margin:10px 0;font-size:14px}
+.pm-row em{font-style:normal;color:var(--muted);text-align:right;font-size:13px}
+.pm-days{display:flex;align-items:flex-end;gap:3px;height:130px;padding-top:6px;border-bottom:1px solid var(--line)}
+.pm-day{flex:1;min-width:0;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;position:relative}
+.pm-day i{display:block;width:100%;background:var(--accent,#3b82f6);border-radius:3px 3px 0 0}
+.pm-day u{position:absolute;top:-2px;font-size:9px;text-decoration:none;color:var(--muted)}
+.pm-axis{display:flex;gap:3px;margin-top:3px}.pm-axis span{flex:1;min-width:0;text-align:center;font-size:9px;color:var(--muted)}
+.pm-pending-zone{margin:0 0 10px}.pm-pending-zone>b{display:block;font-size:13px;margin-bottom:6px}
+.pm-chips{display:flex;flex-wrap:wrap;gap:6px}
+.pm-chip{padding:4px 9px;border-radius:999px;background:var(--panel2);border:1px solid var(--line);font-size:12px;font-weight:700}
+/* puntos de revisión del chequeo preventivo */
+.pm-zr{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px}
+.pm-zr b{font-weight:600;flex:1;min-width:0}.pm-zr input[type=text],.pm-zr input:not([type]){width:72px}
+.pm-seg{display:flex;gap:4px;flex:0 0 auto}
+.pm-seg label{position:relative;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);font-size:12px;font-weight:700;cursor:pointer}
+.pm-seg input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
+.pm-seg label:has(input:checked){background:var(--green,#22c55e);color:#fff;border-color:transparent}
+.pm-seg label:has(input[value=Falla]:checked),.pm-seg label:has(input[value=NO]:checked){background:#dc2626}
+.pm-seg label:has(input[value="N/A"]:checked){background:var(--muted)}
+.pm-grease{display:grid;grid-template-columns:repeat(auto-fill,minmax(40px,1fr));gap:6px}
+.pm-grease label{position:relative}.pm-grease input{position:absolute;opacity:0;inset:0;margin:0}
+.pm-grease span{display:block;text-align:center;padding:8px 0;border:1px solid var(--line);border-radius:8px;font-size:12px;font-weight:700}
+.pm-grease input:checked+span{background:var(--green,#22c55e);color:#fff;border-color:transparent}
+@media(min-width:980px){.pm-plant{grid-template-columns:repeat(6,minmax(0,1fr))}.pm-zone[data-z=CAM],.pm-zone[data-z=DIM],.pm-zone[data-z=BSL]{grid-column:span 2}.pm-zone[data-z=EXT1],.pm-zone[data-z=EXT2]{grid-column:span 3}}
+@media(max-width:699px){.pm-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.pm-panels{grid-template-columns:minmax(0,1fr)}.pm-actions{margin-left:0;width:100%}.pm-summary small{display:none}}
