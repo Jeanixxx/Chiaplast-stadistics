@@ -1,5 +1,5 @@
 /* Herramientas operativas esenciales de Chiaplast Statistics.
-   Registros en db/localStorage; la sincronización compartida se conecta después.
+   Registros en db/localStorage; supabase-sync.js los sincroniza (kanban, reminders, technicalNotes, dailyChecks, pmChecks).
    Evidencias fotográficas: locales para evitar subir archivos pesados a la tabla JSON. */
 (function(){
 'use strict';

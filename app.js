@@ -540,7 +540,7 @@ function camposClasificacion(desc){
     detalle_clasificacion:c.todas_categorias
   };
 }
-function reclassifyificarEventosExistentes(force){
+function reclasificarEventosExistentes(force){
   let n=0;
   (db.events||[]).forEach(ev=>{
     if(!ev.desc) return;
