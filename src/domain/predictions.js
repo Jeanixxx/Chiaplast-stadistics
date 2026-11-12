@@ -2,6 +2,7 @@
 import { Chart } from '../vendor.js';
 
 import { state } from '../core/state.js';
+import { calcularProximaFalla } from './proxima-falla.js';
 
 import { badge, esc } from '../core/ui.js';
 
@@ -216,27 +217,18 @@ export function renderPredictive(){
 
 
 /**
- * Próxima falla estimada de una máquina: última falla + intervalo medio entre fallas registradas.
+ * Próxima falla estimada de una máquina (ver calcularProximaFalla).
  * Requiere al menos 3 eventos con fecha válida (mismo criterio que muestra la vista Predictivo).
- * Restaurado: la vista llamaba a esta función, que no existía en el código original.
  */
 export function predecirProximaFalla(machineId){
-  const fechas = state.db.events
-    .filter(e => e.machine === machineId)
-    .map(e => parseLocalDate(e.date))
-    .filter(d => d && !isNaN(d))
-    .sort((a, b) => a - b);
-  if (fechas.length < 3) return null;
-  const DIA = 86400000;
-  let suma = 0;
-  for (let i = 1; i < fechas.length; i++) suma += (fechas[i] - fechas[i - 1]) / DIA;
-  const promedio = suma / (fechas.length - 1);
-  const ultima = fechas[fechas.length - 1];
-  const proxima = new Date(ultima.getTime() + promedio * DIA);
+  const r = calcularProximaFalla(
+    state.db.events.filter(e => e.machine === machineId).map(e => parseLocalDate(e.date))
+  );
+  if (!r) return null;
   return {
-    proxima: iso(proxima),
-    n: fechas.length,
-    promedio: Math.round(promedio * 10) / 10,
-    ultima: iso(ultima),
+    proxima: iso(r.proxima),
+    n: r.n,
+    promedio: Math.round(r.promedioDias * 10) / 10,
+    ultima: iso(r.ultima),
   };
 }

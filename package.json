@@ -6,9 +6,10 @@
   "main": "electron/main.cjs",
   "scripts": {
     "build": "node scripts/build-web.mjs",
-    "test": "node tests/smoke.mjs",
+    "test": "node tests/unit.mjs && node tests/smoke.mjs",
     "build:windows": "npm run build && electron-builder --win nsis --x64 --ia32 --publish never",
-    "android:sync": "npm run build && cap sync android"
+    "android:sync": "npm run build && cap sync android",
+    "test:unit": "node tests/unit.mjs"
   },
   "dependencies": {
     "@capacitor/core": "8.5.3",
