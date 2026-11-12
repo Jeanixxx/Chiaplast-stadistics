@@ -1,4 +1,5 @@
 /** Módulo: features/purchases.js */
+import { Chart } from '../vendor.js';
 
 import { state } from '../core/state.js';
 

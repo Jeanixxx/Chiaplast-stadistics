@@ -44,7 +44,7 @@ const hash = createHash('sha256');
 for (const a of assets) hash.update(await readFile(join(dist, a)));
 const version = hash.digest('hex').slice(0, 12);
 const shell = ['./', ...assets.map(a => './' + a)];
-const template = await readFile(join(root, 'src/pwa/sw.template.js'), 'utf8');
+const template = await readFile(join(root, 'pwa/sw.template.js'), 'utf8');
 const sw = template
   .replace('const CACHE_NAME = CACHE_PREFIX + "__CACHE_VERSION__";', `const CACHE_NAME = CACHE_PREFIX + "${version}";`)
   .replace('const SHELL = __SHELL__;', `const SHELL = ${JSON.stringify(shell, null, 2)};`);

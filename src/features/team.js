@@ -1,4 +1,5 @@
 /** Módulo: features/team.js */
+import { Chart } from '../vendor.js';
 
 import { state } from '../core/state.js';
 

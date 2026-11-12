@@ -1,4 +1,6 @@
 /** Módulo: features/report-pdf.js */
+import { jsPDF } from '../vendor.js';
+import { Chart } from '../vendor.js';
 
 import { state } from '../core/state.js';
 
@@ -37,11 +39,6 @@ function tempCanvas(w,h){
 export async function descargarInforme(){
   const status=document.getElementById('reportStatus');
   if(!status){ toast('No se encontró el panel de informes'); return; }
-  if(typeof window.jspdf === 'undefined' || !window.jspdf?.jsPDF){
-    status.textContent='Error: La librería PDF no está cargada. Verifica tu conexión a internet e intenta de nuevo.';
-    toast('No se pudo cargar jsPDF');
-    return;
-  }
   status.textContent='Generando informe…';
   try{
   const machine=document.getElementById('reportMachine')?.value||'';
@@ -54,7 +51,6 @@ export async function descargarInforme(){
   const incEvents=chk('reportIncEvents');
   const incParts=chk('reportIncParts');
   const period=getDashPeriod(), ref=state.dashRefDate;
-  const {jsPDF}=window.jspdf;
   const doc=new jsPDF({unit:'pt',format:'a4'});
   const W=doc.internal.pageSize.getWidth();
   let y=50;

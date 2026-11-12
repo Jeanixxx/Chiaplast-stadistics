@@ -1,4 +1,5 @@
 /** Módulo: views/backlog.js */
+import { Chart } from '../vendor.js';
 
 import { predecirProximaFalla } from '../domain/predictions.js';
 import { state } from '../core/state.js';

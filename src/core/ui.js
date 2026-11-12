@@ -66,9 +66,10 @@ export function toggleFocusMode(){
 export const saveHooks = { before: [], after: [] };
 
 export function save(){
-  saveHooks.before.forEach(fn=>{ try{ fn(); }catch(e){ console.error(e); } });
+  // Igual que el wrapper original: un error en "antes" impide guardar; un error en "después" se propaga tras guardar.
+  saveHooks.before.forEach(fn=>fn());
   const result = persistDb();
-  saveHooks.after.forEach(fn=>{ try{ fn(); }catch(e){ console.error(e); } });
+  saveHooks.after.forEach(fn=>fn());
   return result;
 }
 

@@ -1,5 +1,7 @@
 /** Módulo: sync/supabase-sync.js */
 
+import { createClient } from '../vendor.js';
+
 import { state } from '../core/state.js';
 
 import { save, saveHooks } from '../core/ui.js';
@@ -16,8 +18,8 @@ const TABLE = 'chiaplast_reportes';
 
 const PENDING_DELETIONS_KEY = 'SL_SUPABASE_PENDING_DELETIONS_V1';
 
-const supabase = window.supabase?.createClient
-    ? window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+const supabase = createClient
+    ? createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
         auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
       })
     : null;

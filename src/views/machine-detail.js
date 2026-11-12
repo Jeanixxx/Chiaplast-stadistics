@@ -1,4 +1,5 @@
 /** Módulo: views/machine-detail.js */
+import { Chart } from '../vendor.js';
 
 import { state } from '../core/state.js';
 

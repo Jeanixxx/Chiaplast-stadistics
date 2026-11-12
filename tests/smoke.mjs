@@ -42,7 +42,7 @@ page.on('dialog', d => d.dismiss().catch(() => {}));
 // Sin red en CI de pruebas: se bloquean los servicios externos (Supabase); las librerías ya van empaquetadas.
 await page.route(/supabase\.co/, r => r.abort());
 await page.goto(base + '/index.html', { waitUntil: 'domcontentloaded' });
-await page.waitForFunction(() => !!window.__chiaplastState, null, { timeout: 15000 });
+await page.waitForSelector('.nav button[data-view]', { timeout: 15000 });
 
 // 1) Todas las vistas se renderizan sin errores.
 const views = await page.$$eval('.nav button[data-view]', bs => bs.map(b => b.dataset.view));
@@ -62,11 +62,12 @@ check(handlerNames.length > 20 && missing.length === 0, `handlers HTML expuestos
 
 // 3) Interacción real: agregar una tarea Kanban y comprobar que llega al estado y se guarda.
 await page.evaluate(() => document.querySelector('.nav button[data-view="mtKanban"]')?.click());
-const before = await page.evaluate(() => window.__chiaplastState.db.kanban.length);
+const readKanban = () => page.evaluate(() => JSON.parse(localStorage.getItem('SL_CMMS_DB_v2') || '{}').kanban?.length ?? 0);
+const before = await readKanban();
 // El overlay de acceso (sin sesión de Supabase) bloquea clics de usuario; la prueba dispara los mismos eventos vía DOM.
 await page.evaluate(() => { const i = document.getElementById('mtTaskTitle'); i.value = 'Prueba de humo'; });
 await page.evaluate(() => document.querySelector('#mtKanban button.btn.primary').click());
-const after = await page.evaluate(() => window.__chiaplastState.db.kanban.length);
+const after = await readKanban();
 const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('SL_CMMS_DB_v2') || '{}').kanban?.some(t => t.title === 'Prueba de humo'));
 check(after === before + 1 && stored, 'agregar tarea Kanban actualiza el estado y localStorage');
 

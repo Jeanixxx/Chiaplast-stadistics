@@ -1,4 +1,6 @@
 /** Módulo: features/financial.js */
+import { jsPDF } from '../vendor.js';
+import { Chart } from '../vendor.js';
 
 import { state } from '../core/state.js';
 
@@ -232,15 +234,10 @@ function renderAreaChart(perdidaHora, horas){
 }
 
 export async function exportarFinancieroPDF(){
-  if(typeof window.jspdf==='undefined' || !window.jspdf?.jsPDF){
-    toast('La librería PDF no está cargada','err');
-    return;
-  }
   try{
     renderFinanciero();
     await new Promise(r=>setTimeout(r,120));
-    const {jsPDF}=window.jspdf;
-    const doc=new jsPDF({unit:'pt',format:'a4'});
+      const doc=new jsPDF({unit:'pt',format:'a4'});
     const W=doc.internal.pageSize.getWidth();
     let y=50;
     doc.setFontSize(16);

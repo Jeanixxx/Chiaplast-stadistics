@@ -32,7 +32,6 @@ import './bootstrap.js';
 import { mtAddNote, mtAddReminder, mtAddTask, mtCompleteReminder, mtDeleteNote, mtDeleteReminder, mtDeleteTask, mtMoveTask, mtPmAllOk, mtPmCsv, mtPmReset, mtPmSetDate, mtSaveDaily, mtSavePreventive, mtShiftMonth, mtUpdatePmChecklist } from './tools/maintenance-tools.js';
 import './sync/supabase-sync.js';
 
-window.__chiaplastState = state;
 Object.assign(window, {
   agregarEmpleadoComida,
   agregarHistorialComida,

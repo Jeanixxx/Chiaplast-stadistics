@@ -1,8 +1,8 @@
-/** Librerías de terceros, empaquetadas (sin CDN). Exponen los mismos globales que antes. */
-import Chart from 'chart.js/auto';
-import { jsPDF } from 'jspdf';
+/** Librerías de terceros empaquetadas (sin CDN). Se importan por nombre desde cada módulo. */
+import ChartJs from 'chart.js/auto';
+import { jsPDF as JsPDF } from 'jspdf';
 import { createClient } from '@supabase/supabase-js';
 
-window.Chart = Chart;
-window.jspdf = { jsPDF };
-window.supabase = { createClient };
+export const Chart = ChartJs;
+export const jsPDF = JsPDF;
+export { createClient };
