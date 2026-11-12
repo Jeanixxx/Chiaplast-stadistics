@@ -1,59 +1,70 @@
-/* Chiaplast Statistics — sincronización de datos operativos compartidos.
- * Usa la tabla existente public.chiaplast_reportes para no exigir una migración
- * de base de datos en esta etapa. No guarda indicadores matemáticos calculados.
- * Nunca colocar una service_role/secret key en el cliente.
- */
-(() => {
-  'use strict';
+/** Módulo: sync/supabase-sync.js */
 
-  const SUPABASE_URL = 'https://kxediwwncowzksycazdt.supabase.co';
-  const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_J-wKdhig_K5uHFlMqSzzfQ_8BOEVoKU';
-  const TABLE = 'chiaplast_reportes';
-  const PENDING_DELETIONS_KEY = 'SL_SUPABASE_PENDING_DELETIONS_V1';
-  const supabase = window.supabase?.createClient
+import { state } from '../core/state.js';
+
+import { save, saveHooks } from '../core/ui.js';
+
+import { now } from '../domain/machines.js';
+
+import { render } from '../views/dashboard.js';
+
+const SUPABASE_URL = 'https://kxediwwncowzksycazdt.supabase.co';
+
+const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_J-wKdhig_K5uHFlMqSzzfQ_8BOEVoKU';
+
+const TABLE = 'chiaplast_reportes';
+
+const PENDING_DELETIONS_KEY = 'SL_SUPABASE_PENDING_DELETIONS_V1';
+
+const supabase = window.supabase?.createClient
     ? window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
         auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
       })
     : null;
 
-  let channel = null;
-  let busy = false;
-  let saveTimer = null;
-  let syncingRemote = false;
-  let lastSnapshot = null;
-  const statusId = 'supabaseSyncStatus';
+let channel = null;
 
-  const COLLECTIONS = [
-    { key: 'events', type: 'falla', get: () => db.events, set: v => { db.events = v; } },
-    { key: 'workOrders', type: 'orden_trabajo', get: () => db.workOrders, set: v => { db.workOrders = v; } },
-    { key: 'pm', type: 'preventivo', get: () => db.pm, set: v => { db.pm = v; } },
-    { key: 'machines', type: 'maquina', get: () => db.machines, set: v => { db.machines = v; } },
-    { key: 'cards', type: 'tarjeta_maquina', get: () => db.cards, set: v => { db.cards = v; } },
-    { key: 'chassis', type: 'chasis', get: () => db.chassis, set: v => { db.chassis = v; } },
-    { key: 'parts', type: 'refaccion', get: () => db.parts, set: v => { db.parts = v; } },
-    { key: 'negligencia', type: 'gestion_negligencia', get: () => db.negligencia, set: v => { db.negligencia = v; } },
-    { key: 'history', type: 'historial', get: () => db.history, set: v => { db.history = v; } },
+let busy = false;
+
+let saveTimer = null;
+
+let syncingRemote = false;
+
+let lastSnapshot = null;
+
+const statusId = 'supabaseSyncStatus';
+
+const COLLECTIONS = [
+    { key: 'events', type: 'falla', get: () => state.db.events, set: v => { state.db.events = v; } },
+    { key: 'workOrders', type: 'orden_trabajo', get: () => state.db.workOrders, set: v => { state.db.workOrders = v; } },
+    { key: 'pm', type: 'preventivo', get: () => state.db.pm, set: v => { state.db.pm = v; } },
+    { key: 'machines', type: 'maquina', get: () => state.db.machines, set: v => { state.db.machines = v; } },
+    { key: 'cards', type: 'tarjeta_maquina', get: () => state.db.cards, set: v => { state.db.cards = v; } },
+    { key: 'chassis', type: 'chasis', get: () => state.db.chassis, set: v => { state.db.chassis = v; } },
+    { key: 'parts', type: 'refaccion', get: () => state.db.parts, set: v => { state.db.parts = v; } },
+    { key: 'negligencia', type: 'gestion_negligencia', get: () => state.db.negligencia, set: v => { state.db.negligencia = v; } },
+    { key: 'history', type: 'historial', get: () => state.db.history, set: v => { state.db.history = v; } },
     // Herramientas operativas esenciales. Usan tipo diario para respetar la restricción existente de la tabla.
-    { key: 'kanban', type: 'diario', get: () => db.kanban, set: v => { db.kanban = v; } },
-    { key: 'reminders', type: 'diario', get: () => db.reminders, set: v => { db.reminders = v; } },
-    { key: 'technicalNotes', type: 'diario', get: () => db.technicalNotes, set: v => { db.technicalNotes = v; } },
-    { key: 'dailyChecks', type: 'diario', get: () => db.dailyChecks, set: v => { db.dailyChecks = v; } },
-    { key: 'pmChecks', type: 'diario', get: () => db.pmChecks, set: v => { db.pmChecks = v; } },
-    { key: 'meal.employees', type: 'personal', get: () => db.meal?.employees, set: v => { db.meal.employees = v; } },
-    { key: 'meal.historial', type: 'historial_comidas', get: () => db.meal?.historial, set: v => { db.meal.historial = v; } },
-    { key: 'meal.semanaActual', type: 'rol_comidas', get: () => db.meal?.semanaActual, set: v => { db.meal.semanaActual = v; } }
+    { key: 'kanban', type: 'diario', get: () => state.db.kanban, set: v => { state.db.kanban = v; } },
+    { key: 'reminders', type: 'diario', get: () => state.db.reminders, set: v => { state.db.reminders = v; } },
+    { key: 'technicalNotes', type: 'diario', get: () => state.db.technicalNotes, set: v => { state.db.technicalNotes = v; } },
+    { key: 'dailyChecks', type: 'diario', get: () => state.db.dailyChecks, set: v => { state.db.dailyChecks = v; } },
+    { key: 'pmChecks', type: 'diario', get: () => state.db.pmChecks, set: v => { state.db.pmChecks = v; } },
+    { key: 'meal.employees', type: 'personal', get: () => state.db.meal?.employees, set: v => { state.db.meal.employees = v; } },
+    { key: 'meal.historial', type: 'historial_comidas', get: () => state.db.meal?.historial, set: v => { state.db.meal.historial = v; } },
+    { key: 'meal.semanaActual', type: 'rol_comidas', get: () => state.db.meal?.semanaActual, set: v => { state.db.meal.semanaActual = v; } }
   ];
 
-  const SINGLETONS = [
-    { key: 'config.keywords', type: 'configuracion', get: () => db.keywords, set: v => { db.keywords = v; } },
-    { key: 'config.crew', type: 'configuracion', get: () => db.crew, set: v => { db.crew = v; } },
-    { key: 'config.meal', type: 'configuracion', get: () => db.meal?.config, set: v => { if (!db.meal) db.meal = {}; db.meal.config = v; } },
+const SINGLETONS = [
+    { key: 'config.keywords', type: 'configuracion', get: () => state.db.keywords, set: v => { state.db.keywords = v; } },
+    { key: 'config.crew', type: 'configuracion', get: () => state.db.crew, set: v => { state.db.crew = v; } },
+    { key: 'config.meal', type: 'configuracion', get: () => state.db.meal?.config, set: v => { if (!state.db.meal) state.db.meal = {}; state.db.meal.config = v; } },
     { key: 'config.finanzas', type: 'configuracion_financiera',
       get: () => { try { return JSON.parse(localStorage.getItem('SL_FIN_CONFIG') || 'null'); } catch (_) { return null; } },
       set: v => { try { localStorage.setItem('SL_FIN_CONFIG', JSON.stringify(v)); } catch (_) {} } }
   ];
 
-  function status(message, kind = 'info') {
+function status(message, kind = 'info') {
     const el = document.getElementById(statusId);
     if (el) { el.textContent = message; el.dataset.kind = kind; }
     const dock = document.getElementById('chiaplastSyncDock'), orb = document.getElementById('cpSyncOrb');
@@ -77,7 +88,7 @@
     if(authMessage && gate && !gate.hidden){authMessage.textContent=message || 'Introduce tus credenciales.';authMessage.dataset.kind=kind==='error'?'error':kind==='ok'?'ok':'info';}
   }
 
-  function showAuth(session) {
+function showAuth(session) {
     const gate=document.getElementById('chiaplastAuthGate');
     if(gate) gate.hidden=!!session;
     document.body.dataset.authenticated=session?'true':'false';
@@ -86,7 +97,7 @@
     if(authMessage && session){authMessage.textContent='Acceso autorizado.';authMessage.dataset.kind='ok';}
   }
 
-  async function signIn(event) {
+async function signIn(event) {
     if(event) event.preventDefault();
     if(!supabase) return status('No se pudo cargar Supabase. Comprueba tu conexión a internet.','error');
     const email=document.getElementById('supabaseEmail').value.trim(), password=document.getElementById('supabasePassword').value;
@@ -101,7 +112,7 @@
     await startRealtime(); await syncAll();
   }
 
-  async function signOut() {
+async function signOut() {
     const {error}=await supabase.auth.signOut();
     if(error) return status('No se pudo cerrar sesión: '+error.message,'error');
     if(channel) await supabase.removeChannel(channel);
@@ -110,7 +121,7 @@
     status('Sesión cerrada. Los datos locales se conservan.');
   }
 
-  function installSyncDock() {
+function installSyncDock() {
     const orb=document.getElementById('cpSyncOrb'), dock=document.getElementById('chiaplastSyncDock');
     const form=document.getElementById('cpLoginForm'), manual=document.getElementById('cpSyncManual'), logout=document.getElementById('supabaseSignOut');
     if(form) form.addEventListener('submit',signIn);
@@ -125,7 +136,7 @@
     window.addEventListener('online',()=>{status('Conexión recuperada. Preparando sincronización…','sync');if(supabase)syncAll();});
   }
 
-  function uuid() {
+function uuid() {
     if (window.crypto?.randomUUID) return window.crypto.randomUUID();
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
       const r = Math.random() * 16 | 0;
@@ -133,12 +144,14 @@
     });
   }
 
-  function isTuple(row) { return Array.isArray(row); }
-  function readMeta(key, fallback) {
+function isTuple(row) { return Array.isArray(row); }
+
+function readMeta(key, fallback) {
     try { return Object.assign({}, JSON.parse(localStorage.getItem(key) || '{}')); }
     catch (_) { return {}; }
   }
-  function singletonId(key) {
+
+function singletonId(key) {
     const ids = readMeta('SL_SUPABASE_SINGLETON_IDS_V1');
     if (!ids[key]) {
       ids[key] = uuid();
@@ -146,7 +159,8 @@
     }
     return ids[key];
   }
-  function singletonTimestamp(key, value) {
+
+function singletonTimestamp(key, value) {
     const times = readMeta('SL_SUPABASE_SINGLETON_TIMES_V1');
     if (value !== undefined) {
       times[key] = value || '';
@@ -154,35 +168,42 @@
     }
     return times[key] || '';
   }
-  function findSingleton(key) { return SINGLETONS.find(item => item.key === key); }
-  function tupleId(row) {
+
+function findSingleton(key) { return SINGLETONS.find(item => item.key === key); }
+
+function tupleId(row) {
     const last = row[row.length - 1];
     const prior = row[row.length - 2];
     if (typeof last === 'string' && last.indexOf('__cloudid:') === 0) return last.slice(10);
     return typeof prior === 'string' && prior.indexOf('__cloudid:') === 0 ? prior.slice(10) : '';
   }
-  function tupleTime(row) {
+
+function tupleTime(row) {
     const item = row[row.length - 1];
     const prior = row[row.length - 2];
     return typeof item === 'string' && item.indexOf('__cloudts:') === 0 ? item.slice(10) :
       (typeof prior === 'string' && prior.indexOf('__cloudts:') === 0 ? prior.slice(10) : '');
   }
-  function setTupleMeta(row, id, timestamp) {
+
+function setTupleMeta(row, id, timestamp) {
     const out = row.slice();
     while (out.length && typeof out[out.length - 1] === 'string' &&
       (out[out.length - 1].indexOf('__cloudid:') === 0 || out[out.length - 1].indexOf('__cloudts:') === 0)) out.pop();
     out.push('__cloudid:' + id, '__cloudts:' + timestamp);
     return out;
   }
-  function idOf(row) {
+
+function idOf(row) {
     if (isTuple(row)) return tupleId(row);
     return row && typeof row === 'object' ? (row._supabaseId || row._cloudId || '') : '';
   }
-  function timeOf(row) {
+
+function timeOf(row) {
     if (isTuple(row)) return tupleTime(row);
     return row && typeof row === 'object' ? (row._cloudUpdatedAt || '') : '';
   }
-  function cleanRecord(row) {
+
+function cleanRecord(row) {
     if (isTuple(row)) {
       const out = row.slice();
       while (out.length && typeof out[out.length - 1] === 'string' &&
@@ -204,8 +225,8 @@
     return out;
   }
 
-  function ensureLocalIds() {
-    if (typeof db === 'undefined' || !db) return;
+function ensureLocalIds() {
+    if (typeof state.db === 'undefined' || !state.db) return;
     COLLECTIONS.forEach(col => {
       const rows = col.get();
       if (!Array.isArray(rows)) return;
@@ -222,7 +243,7 @@
     });
   }
 
-  function collectionEntries() {
+function collectionEntries() {
     const out = [];
     COLLECTIONS.forEach(col => {
       const rows = col.get();
@@ -243,22 +264,23 @@
     return out;
   }
 
-  function snapshotNow() {
+function snapshotNow() {
     const map = new Map();
     collectionEntries().forEach(item => map.set(item.collection + ':' + item.id, JSON.stringify(item.record)));
     return map;
   }
 
-  function getPendingDeletions() {
+function getPendingDeletions() {
     try { return JSON.parse(localStorage.getItem(PENDING_DELETIONS_KEY) || '[]'); }
     catch (_) { return []; }
   }
-  function setPendingDeletions(items) {
+
+function setPendingDeletions(items) {
     try { localStorage.setItem(PENDING_DELETIONS_KEY, JSON.stringify(items)); } catch (_) {}
   }
 
-  function markLocalChanges() {
-    if (syncingRemote || typeof db === 'undefined' || !db) return;
+function markLocalChanges() {
+    if (syncingRemote || typeof state.db === 'undefined' || !state.db) return;
     ensureLocalIds();
     const current = collectionEntries();
     const next = new Map();
@@ -294,8 +316,9 @@
     lastSnapshot = snapshotNow();
   }
 
-  function findCollection(key) { return COLLECTIONS.find(col => col.key === key); }
-  function removeLocalRecord(collection, id) {
+function findCollection(key) { return COLLECTIONS.find(col => col.key === key); }
+
+function removeLocalRecord(collection, id) {
     const singleton = findSingleton(collection);
     if (singleton) { singleton.set(null); singletonTimestamp(collection, ''); return; }
     const col = findCollection(collection);
@@ -304,7 +327,8 @@
     if (!Array.isArray(rows)) return;
     col.set(rows.filter(row => idOf(row) !== id));
   }
-  function putLocalRecord(collection, id, record, timestamp) {
+
+function putLocalRecord(collection, id, record, timestamp) {
     const singleton = findSingleton(collection);
     if (singleton) {
       singleton.set(record);
@@ -336,7 +360,7 @@
     col.set(rows);
   }
 
-  function areaFor(machine) {
+function areaFor(machine) {
     const value = String(machine || '').toUpperCase().trim();
     if (/^(BK-|BNG-|BC-|IMP-|CAM)/.test(value)) return 'CAM';
     if (/^(BM-|BD-|SELLADORA|HORNO M|DIM)/.test(value)) return 'DIM';
@@ -345,7 +369,7 @@
     return '';
   }
 
-  function toCloudRow(item) {
+function toCloudRow(item) {
     const record = item.record;
     let machine = isTuple(record) ? '' : (record.machine || record.maquina || record.machineId || record.id || '');
     let date = isTuple(record) ? '' : String(record.date || record.fecha || record.date_created || '');
@@ -368,7 +392,7 @@
     };
   }
 
-  function decodeRemote(row) {
+function decodeRemote(row) {
     const data = row?.datos;
     if (data && data._syncVersion === 1 && data.collection && data.deleted) {
       return { id: row.id, collection: data.collection, deleted: true, updatedAt: data.clientUpdatedAt || row.actualizado_en || '' };
@@ -386,7 +410,7 @@
     return null;
   }
 
-  function mergeRemote(rows) {
+function mergeRemote(rows) {
     let changed = false;
     const remoteById = new Map();
     (rows || []).forEach(row => {
@@ -419,7 +443,7 @@
     return { changed, remoteById };
   }
 
-  function tombstoneRow(item) {
+function tombstoneRow(item) {
     return {
       id: item.id,
       // Tombstone compatible con la restricción actual de tipo en Supabase.
@@ -432,8 +456,8 @@
     };
   }
 
-  async function syncAll() {
-    if (!supabase || busy || typeof db === 'undefined') return;
+async function syncAll() {
+    if (!supabase || busy || typeof state.db === 'undefined') return;
     const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
     if (sessionError) return status('No se pudo validar la sesión: ' + sessionError.message, 'error');
     if (!sessionData.session) return status('Inicia sesión para sincronizar.', 'error');
@@ -476,12 +500,12 @@
       if (merged.changed) {
         syncingRemote = true;
         try {
-          if (typeof save === 'function') save();
+          save();
           if (typeof render === 'function') render();
         } finally {
           syncingRemote = false;
         }
-      } else if (typeof save === 'function') {
+      } else {
         syncingRemote = true;
         try { save(); } finally { syncingRemote = false; }
       }
@@ -495,7 +519,7 @@
     }
   }
 
-  async function startRealtime() {
+async function startRealtime() {
     if (!supabase || channel) return;
     channel = supabase.channel('chiaplast-operational-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: TABLE }, () => {
@@ -508,23 +532,19 @@
       });
   }
 
-  function installSaveHook() {
-    if (typeof save !== 'function' || save.__supabaseWrapped) return;
-    const originalSave = save;
-    const wrapped = function(...args) {
-      if (!syncingRemote) markLocalChanges();
-      const result = originalSave.apply(this, args);
-      // save() also writes standalone settings such as SL_FIN_CONFIG.
-      // Re-check after the original save so those settings receive a change timestamp.
+function installSaveHook() {
+    if (installSaveHook.installed) return;
+    installSaveHook.installed = true;
+    // Antes y después de cada save(): marcar cambios locales y programar la sincronización.
+    saveHooks.before.push(() => { if (!syncingRemote) markLocalChanges(); });
+    saveHooks.after.push(() => {
+      // save() también escribe ajustes sueltos (p. ej. SL_FIN_CONFIG): volver a marcar tras guardar.
       if (!syncingRemote) markLocalChanges();
       if (!syncingRemote) {
         clearTimeout(saveTimer);
         saveTimer = setTimeout(() => { if (supabase) syncAll(); }, 1200);
       }
-      return result;
-    };
-    wrapped.__supabaseWrapped = true;
-    save = wrapped;
+    });
   }
 
   async function init() {
@@ -558,6 +578,6 @@
     }
   }
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
-  else init();
-})();
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else queueMicrotask(init); // tras evaluar todos los módulos (saveHooks de core/ui.js ya existe)
+

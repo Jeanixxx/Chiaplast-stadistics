@@ -1,16 +1,8 @@
-/* Chiaplast PWA: cachea solo la interfaz estática. Nunca almacena respuestas de Supabase/Auth. */
+/* Chiaplast PWA: cachea solo la interfaz estática. Nunca almacena respuestas de Supabase/Auth.
+ * Plantilla: scripts/build-web.mjs genera la versión de caché y la lista de precarga. */
 const CACHE_PREFIX = "chiaplast-shell-";
-const CACHE_NAME = CACHE_PREFIX + "v5";
-const SHELL = [
-  "./",
-  "./index.html",
-  "./maintenance-tools.js",
-  "./styles.css",
-  "./app.js",
-  "./supabase-sync.js",
-  "./manifest.webmanifest",
-  "./icons/chiaplast.svg"
-];
+const CACHE_NAME = CACHE_PREFIX + "__CACHE_VERSION__";
+const SHELL = __SHELL__;
 
 self.addEventListener("install", event => {
   event.waitUntil((async () => {

@@ -22,14 +22,18 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+
+      - name: Install dependencies
+        run: npm ci
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
       - name: Build web files
         run: npm run build
       - name: Check JavaScript syntax
         run: |
           node --check dist/app.js
-          node --check dist/supabase-sync.js
           node --check dist/sw.js
       - name: Verify expected files
         run: |
           test -s dist/index.html
-          test -s dist/supabase-sync.js
+          test -s dist/app.js

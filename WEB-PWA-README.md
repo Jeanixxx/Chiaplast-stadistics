@@ -3,7 +3,7 @@
 ## Qué incluye
 - Interfaz web adaptable a computadoras y tabletas.
 - Instalación como aplicación desde un navegador compatible mediante HTTPS.
-- Caché local únicamente de los archivos estáticos de la interfaz para permitir abrir la última versión visitada si la red falla.
+- Caché local únicamente de los archivos estáticos de la interfaz (`dist/`) para permitir abrir la última versión visitada si la red falla. La versión de caché cambia con el contenido del build, así que las actualizaciones se aplican solas.
 - Los datos de Supabase, autenticación y Realtime **no se guardan en el caché del service worker**.
 
 ## Importante sobre la sincronización

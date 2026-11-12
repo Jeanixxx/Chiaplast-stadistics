@@ -8,8 +8,6 @@
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="icon" href="./icons/chiaplast.svg" type="image/svg+xml">
 <title>Chiaplast · Gestión integral</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <link rel="stylesheet" href="styles.css">
 
 </head>
@@ -1013,20 +1011,6 @@ Ejemplo:
 </div>
 <div class="toast" id="toast"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="app.js"></script>
-<script src="maintenance-tools.js"></script>
-<script src="supabase-sync.js"></script>
-<script>
-// El service worker solo se activa en HTTP(S); nunca interviene en llamadas a Supabase.
-if (location.protocol === "https:" || location.protocol === "http:") {
-  if ("serviceWorker" in navigator) {
-    window.addEventListener("load", () => {
-      navigator.serviceWorker.register("./sw.js", { scope: "./" })
-        .catch(error => console.warn("[Chiaplast PWA] No se pudo registrar el service worker:", error));
-    });
-  }
-}
-</script>
+<script src="app.js" defer></script>
 </body>
 </html>

@@ -25,7 +25,7 @@ La APK es de depuración para pruebas y no está preparada para publicarse en Go
 
 ## Probar localmente
 
-Para probar la versión web desde el código fuente, sirve la carpeta con cualquier servidor HTTP estático. El usuario final de Windows no necesita hacerlo si utiliza el instalador `.exe`.
+Para probar la versión web desde el código fuente: `npm run build` y después sirve la carpeta `dist/` con cualquier servidor HTTP estático (por ejemplo, `python3 -m http.server 8000 --directory dist`). No abras `index.html` con doble clic: el service worker necesita HTTP(S). El usuario final de Windows no necesita hacerlo si utiliza el instalador `.exe`.
 
 ## Sincronización Supabase
 
@@ -35,27 +35,47 @@ La sincronización operativa de esta rama usa la tabla existente `public.chiapla
 
 La clave de cliente configurada es una publishable key. Nunca agregar una clave `service_role` o una clave secreta al HTML, JavaScript o APK. En esta etapa se solicita acceso compartido para todos los usuarios autenticados. Las políticas RLS de `chiaplast_reportes` deben permitirles leer y escribir los registros operativos compartidos; no se deben ejecutar aún las migraciones nuevas de `supabase/migrations/`, porque el sincronizador de esta rama todavía usa la tabla existente. Las migraciones son un diseño posterior y requieren revisión y pruebas por separado.
 
-## Compilación
+## Compilación y pruebas
 
-GitHub Actions construye automáticamente Windows y Android cuando hay cambios en `main`, `python` o `feature/supabase-sync`, y también puede ejecutarse manualmente desde **Actions**.
+```bash
+npm ci          # dependencias exactas (lockfile)
+npm run build   # genera dist/: bundle JavaScript, HTML, CSS, manifest y service worker
+npm test        # prueba de humo en Chromium sobre dist/ (requiere Playwright; ver abajo)
+```
 
-- Windows: Electron genera un instalador `.exe`.
-- Android: Gradle compila una aplicación Android nativa que muestra los archivos locales en Android WebView usando AndroidX WebKit. La compilación no ejecuta Capacitor ni `cap sync`.
-- El proceso web copia `index.html`, `app.js`, `styles.css` y `supabase-sync.js` a `dist`, para que el módulo de sincronización también se incluya en los artefactos.
+- Las librerías (Chart.js, jsPDF y Supabase) se empaquetan dentro de `dist/app.js`; ya no se cargan desde CDN.
+- Windows: Electron genera un instalador `.exe` (`npm run build:windows`).
+- Android: el workflow copia `dist/` al WebView nativo (sin Capacitor en el proceso de compilación).
+- Para `npm test` la primera vez: `npx playwright install chromium`.
+
 
 ## Datos y limitaciones actuales
 
 La aplicación principal mantiene datos en `localStorage`. El sincronizador cubre las colecciones operativas indicadas arriba; no sincroniza preferencias de interfaz ni métricas derivadas. Borrar datos de la app o cambiar de navegador puede afectar los datos locales. Exporta respaldos antes de actualizar.
 
-## Archivos principales
+## Estructura del código
 
-- `index.html`: interfaz de la aplicación.
-- `styles.css`: diseño adaptable.
-- `app.js`: navegación, estado y módulos.
-- `supabase-sync.js`: autenticación y sincronización de datos operativos compartidos.
-- `scripts/build-web.mjs`: prepara los archivos web para los instaladores.
-- `android/app/src/main/java/com/chiaplast/gestion/MainActivity.java`: contenedor Android WebView nativo.
+```
+index.html               Marcado de la interfaz (punto de entrada; carga dist/app.js)
+src/
+  main.js                Entrada: orden de carga, handlers expuestos en window y service worker
+  vendor.js              Chart.js, jsPDF y Supabase empaquetados (globales window.Chart, window.jspdf, window.supabase)
+  core/state.js          Estado mutable único (state.db, state.currentView, ...)
+  core/ui.js             Guardado (save + hooks), notificaciones, utilidades de escape, preferencias
+  data/seed.js           Datos iniciales (semilla)
+  domain/                Reglas de negocio sin DOM: máquinas, clasificación de fallas, producción, predicciones
+  features/              Flujos: importación semanal/mensual, equipo, comidas, informes PDF, compras, financiero
+  ui/                    Navegación, modales, gráficas
+  views/                 Una vista por módulo: dashboard, operaciones, preventivo, historial, backlog...
+  tools/maintenance-tools.js  Kanban, recordatorios, notas técnicas, chequeos diarios y preventivo
+  sync/supabase-sync.js  Autenticación y sincronización con Supabase (usa saveHooks; no reemplaza funciones globales)
+  styles/styles.css      Estilos
+  pwa/sw.template.js     Plantilla del service worker (build genera versión de caché y lista de precarga)
+scripts/build-web.mjs    Build con esbuild
+tests/smoke.mjs          Prueba de humo end-to-end
+```
 
+Convenciones: los módulos se comunican por `import`/`export`; el estado compartido vive solo en `state`. Solo los handlers que el HTML invoca (`onclick="..."`) se exponen en `window`.
 
 ## Interfaz de acceso y estado de sincronización
 
