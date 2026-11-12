@@ -1,4 +1,5 @@
 /** Módulo: views/dashboard.js */
+import { services } from '../core/services.js';
 
 import { state } from '../core/state.js';
 
@@ -8,10 +9,9 @@ import { MACHINES, isAllAreas, iso, parseLocalDate } from '../domain/machines.js
 
 import { periodRange } from '../domain/production.js';
 
-import { fillFinMachineSelect } from '../features/financial.js';
 
 
-import { VIEW_CONFIG } from '../ui/navigation.js';
+import { VIEW_CONFIG } from '../core/services.js';
 
 import { renderCharts, renderMachineDetail } from './machine-detail.js';
 
@@ -23,7 +23,7 @@ export function renderDashboard(){
   if(state.selectedMachine){
     if(allPanel) allPanel.style.display='none';
     if(machinePanel) machinePanel.style.display='block';
-    state.machinePeriod=getDashPeriod();
+    state.machinePeriod=services.getDashPeriod();
     const tabs=[...document.querySelectorAll('#dashActivePanel .tab')];
     const activeIndex=state.machinePeriod==='week'?1:state.machinePeriod==='month'?2:0;
     tabs.forEach((tab,index)=>tab.classList.toggle('active',index===activeIndex));
@@ -44,7 +44,7 @@ function updatePageContext(){
   const subtitle=document.getElementById('pageSubtitle');
   const area=isAllAreas()?'Toda la planta':state.currentArea;
   const machine=state.selectedMachine||'Todas las máquinas';
-  const period=getDashPeriod();
+  const period=services.getDashPeriod();
   const {start,end}=periodRange(period,state.dashRefDate);
   const range=period==='day'?iso(start):`${iso(start)} → ${iso(end)}`;
   if(title) title.textContent=config.title;
@@ -62,12 +62,12 @@ export function render(){
   }
   const predictiveMachine=document.getElementById('predMachine');
   if(predictiveMachine) predictiveMachine.textContent=state.selectedMachine||(machines[0]||'—');
-  syncPeriodControls();
-  updateDashPeriodLabel();
+  services.syncPeriodControls();
+  services.updateDashPeriodLabel();
 
   const financialMachine=document.getElementById('finMachine');
   if(financialMachine){
-    fillFinMachineSelect();
+    services.fillFinMachineSelect();
     if(state.selectedMachine&&[...financialMachine.options].some(option=>option.value===state.selectedMachine)){
       financialMachine.value=state.selectedMachine;
     }
@@ -93,7 +93,7 @@ export function render(){
 export function syncPeriodControls(){
   const sideP=document.getElementById('sidePeriodSelect');
   const sideD=document.getElementById('sideRefDateInput');
-  if(sideP) sideP.value=getDashPeriod();
+  if(sideP) sideP.value=services.getDashPeriod();
   if(sideD) sideD.value=state.dashRefDate;
 }
 
@@ -102,31 +102,31 @@ export function onSidePeriodChange(){
   const sideD=document.getElementById('sideRefDateInput');
   if(sideP) window.dashPeriod=sideP.value||'day';
   if(sideD && sideD.value) state.dashRefDate=sideD.value;
-  updateDashPeriodLabel();
-  render();
+  services.updateDashPeriodLabel();
+  services.render();
 }
 
 export function shiftDashDate(dir){
-  const p=getDashPeriod();
+  const p=services.getDashPeriod();
   const d=parseLocalDate(state.dashRefDate);
   if(p==='day') d.setDate(d.getDate()+dir);
   else if(p==='week') d.setDate(d.getDate()+dir*7);
   else d.setMonth(d.getMonth()+dir);
   state.dashRefDate=iso(d);
-  syncPeriodControls();
-  updateDashPeriodLabel();
-  render();
+  services.syncPeriodControls();
+  services.updateDashPeriodLabel();
+  services.render();
 }
 
 export function setDashToday(){
   state.dashRefDate=iso(new Date());
-  syncPeriodControls();
-  updateDashPeriodLabel();
-  render();
+  services.syncPeriodControls();
+  services.updateDashPeriodLabel();
+  services.render();
 }
 
 export function updateDashPeriodLabel(){
-  const p=getDashPeriod();
+  const p=services.getDashPeriod();
   const {start,end}=periodRange(p, state.dashRefDate);
   const fmt=d=>iso(d);
   const dayNames=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
@@ -156,6 +156,6 @@ export function clearMachineSelection(){
   state.selectedMachine='';
   const sel=document.getElementById('machineSelect');
   if(sel) sel.value='';
-  render();
+  services.render();
 }
 

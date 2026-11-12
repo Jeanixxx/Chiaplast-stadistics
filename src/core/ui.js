@@ -2,25 +2,23 @@
 
 import { state } from './state.js';
 
-import { AREAS, iso, syncMachines } from '../domain/machines.js';
+import { AREAS, syncMachines } from '../domain/machines.js';
+import { iso } from '../domain/dates.js';
+import { esc } from './format.js';
 
-import { syncMaintenanceStorageFromDb } from '../features/monthly-import.js';
 
-import { destroyCharts, destroyFinCharts } from '../ui/charts.js';
 
-import { VIEW_CONFIG } from '../ui/navigation.js';
+import { services, VIEW_CONFIG } from './services.js';
 
-import { getDashPeriod, render } from '../views/dashboard.js';
 
-import { invalidateHistoryCache } from '../views/history.js';
 
 export function hardRefreshApp(){
-  try{ destroyCharts?.(); }catch{}
-  try{ destroyFinCharts?.(); }catch{}
-  try{ invalidateHistoryCache?.(); }catch{}
+  try{ services.destroyCharts?.(); }catch{}
+  try{ services.destroyFinCharts?.(); }catch{}
+  try{ services.invalidateHistoryCache?.(); }catch{}
   try{ syncMachines?.(); }catch{}
   try{
-    render();
+    services.render();
     toast('Interfaz refrescada');
   }catch(e){
     console.error(e);
@@ -51,7 +49,7 @@ export function undoLastChange(){
     state.db=JSON.parse(last.data);
     state._prevDbJson=last.data;
     localStorage.setItem('SL_CMMS_DB_v2', last.data);
-    render();
+    services.render();
     toast('Cambio deshecho');
   }catch{ toast('No se pudo deshacer','err'); }
 }
@@ -82,8 +80,8 @@ function persistDb(){
   }catch{}
   state._prevDbJson=JSON.stringify(state.db);
   localStorage.setItem('SL_CMMS_DB_v2',state._prevDbJson);
-  try{ syncMaintenanceStorageFromDb(); }catch{}
-  try{ invalidateHistoryCache(); }catch{}
+  try{ services.syncMaintenanceStorageFromDb(); }catch{}
+  try{ services.invalidateHistoryCache(); }catch{}
   saveFinConfig();
 }
 
@@ -155,7 +153,7 @@ export function saveUiState(){
     localStorage.setItem('SL_CMMS_STATE', JSON.stringify({
       area: state.currentArea,
       machine: state.selectedMachine||'',
-      period: getDashPeriod(),
+      period: services.getDashPeriod(),
       date: state.dashRefDate,
       dark: document.documentElement.classList.contains('dark'),
       view: state.currentView
@@ -183,7 +181,7 @@ export function toggleDarkMode(){
   const btn=document.getElementById('darkModeBtn');
   if(btn) btn.textContent=on?'☀️ Modo claro':'🌙 Modo oscuro';
   saveUiState();
-  render();
+  services.render();
 }
 
 export function toggleMobileMenu(){
@@ -214,13 +212,5 @@ export function exportCSV(){
   toast('CSV exportado');
 }
 
-export function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
-
-export function escAttr(s){return esc(s).replace(/`/g,'&#96;')}
-
-export function badge(v){
-  const x=String(v??'').toLowerCase();
-  let c=x.includes('crít')||x.includes('falla')?'b-bad':x.includes('advert')||x.includes('alta')||x.includes('revis')?'b-warn':x.includes('normal')||x.includes('operativa')||x.includes('cerr')||x.includes('dispon')?'b-ok':'b-info';
-  return `<span class="badge ${c}">${esc(v)}</span>`;
-}
+export { esc, escAttr, badge } from './format.js';
 

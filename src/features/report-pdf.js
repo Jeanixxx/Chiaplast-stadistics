@@ -1,4 +1,5 @@
 /** Módulo: features/report-pdf.js */
+import { services } from '../core/services.js';
 import { jsPDF } from '../vendor.js';
 import { Chart } from '../vendor.js';
 
@@ -17,7 +18,6 @@ import { TEAM, collectPersonJobs, personStats } from './team.js';
 import { machineFilter } from './weekly-import.js';
 
 
-import { getDashPeriod } from '../views/dashboard.js';
 
 import { recomendarRefacciones } from '../views/history.js';
 
@@ -50,7 +50,7 @@ export async function descargarInforme(){
   const incPm=chk('reportIncPm');
   const incEvents=chk('reportIncEvents');
   const incParts=chk('reportIncParts');
-  const period=getDashPeriod(), ref=state.dashRefDate;
+  const period=services.getDashPeriod(), ref=state.dashRefDate;
   const doc=new jsPDF({unit:'pt',format:'a4'});
   const W=doc.internal.pageSize.getWidth();
   let y=50;

@@ -1,4 +1,5 @@
 /** Módulo: ui/modals.js */
+import { services } from '../core/services.js';
 
 import { state } from '../core/state.js';
 
@@ -8,15 +9,12 @@ import { camposClasificacion } from '../domain/failure-classifier.js';
 
 import { MACHINES, isAllAreas, iso } from '../domain/machines.js';
 
-import { fillFinMachineSelect } from '../features/financial.js';
 
-import { fillReportMachineSelect } from '../features/report-pdf.js';
 
 import { TEAM, ensurePerson } from '../features/team.js';
 
-import { VIEW_CONFIG } from './navigation.js';
+import { VIEW_CONFIG } from '../core/services.js';
 
-import { render } from '../views/dashboard.js';
 
 export function fillAreaSelectUI(){
   const sel=document.getElementById('areaSelect');
@@ -31,9 +29,9 @@ function onAreaSelectChange(){
   const e=document.getElementById('areaSelect');
   state.currentArea=e && e.value==='__ALL__'?'__ALL__':(e?.value||state.currentArea);
   state.selectedMachine='';
-  fillReportMachineSelect();
-  fillFinMachineSelect();
-  render();
+  services.fillReportMachineSelect();
+  services.fillFinMachineSelect();
+  services.render();
 }
 
 document.getElementById('areaSelect')?.addEventListener('change',onAreaSelectChange);
@@ -42,7 +40,7 @@ document.getElementById('machineSelect')?.addEventListener('change',e=>{
   state.selectedMachine=e.target.value||'';
   const finSel=document.getElementById('finMachine');
   if(finSel && state.selectedMachine && [...finSel.options].some(o=>o.value===state.selectedMachine)) finSel.value=state.selectedMachine;
-  render();
+  services.render();
 });
 
 export function navigateToView(viewId){
@@ -66,12 +64,12 @@ export function navigateToView(viewId){
   }
   saveUiState();
   closeMobileMenu();
-  render();
+  services.render();
   return true;
 }
 
 document.querySelectorAll('.nav button[data-view]').forEach(button=>{
-  button.addEventListener('click',()=>navigateToView(button.dataset.view));
+  button.addEventListener('click',()=>services.navigateToView(button.dataset.view));
 });
 
 function bindModalEnter(){
@@ -138,7 +136,7 @@ export function saveWO(){
   const downtime=Number(document.getElementById('f_h')?.value)||0;
   state.db.workOrders.unshift({id,date:d,machine,fault,priority,status:'Abierta',downtime,technician:tech});
   state.db.history.unshift([d,'Correctivo',machine,fault,tech,'Abierta']);
-  ensurePerson(tech);save();closeModal();render();toast(id+' creada');
+  ensurePerson(tech);save();services.closeModal();services.render();toast(id+' creada');
   flashLastTableRow('woTable'); flashLastTableRow('historyTable');
 }
 
@@ -153,7 +151,7 @@ export function saveEvent(){
   const clas=camposClasificacion(desc);
   state.db.events.unshift({date:d,machine,type,severity:severity,desc,minutes,kgTarget:0,kgActual:0,...clas});
   state.db.history.unshift([d,'Evento',machine,desc,'Usuario','Registrado']);
-  save();closeModal();render();
+  save();services.closeModal();services.render();
   toast('Evento registrado'+(clas.clasificacion!=='No clasificada'?' · '+clas.clasificacion+' ('+clas.confianza+'%)':''));
   flashLastTableRow('historyTable');
 }
@@ -167,7 +165,7 @@ export function savePm(){
   const d=new Date();
   d.setDate(d.getDate()+({'Diaria':1,'Semanal':7,'Quincenal':15,'Mensual':30,'Trimestral':90}[f]||30));
   state.db.pm.push([machine,activity,f,iso(new Date()),iso(d),pr]);
-  save();closeModal();render();toast('Plan preventivo agregado');
+  save();services.closeModal();services.render();toast('Plan preventivo agregado');
   flashLastTableRow('pmTable');
 }
 
@@ -179,11 +177,11 @@ export function savePart(){
   const min=Number(document.getElementById('r_m')?.value)||1;
   const equip=(document.getElementById('r_e')?.value||'').trim()||'—';
   state.db.parts.push([name,cat,stock,min,equip]);
-  save();closeModal();render();toast('Refacción agregada');
+  save();services.closeModal();services.render();toast('Refacción agregada');
   flashLastTableRow('partsTable');
 }
 
 export function exportData(){const blob=new Blob([JSON.stringify(state.db,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='SL_CMMS_backup.json';a.click();URL.revokeObjectURL(a.href);toast('JSON exportado')}
 
-export function importData(e){const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=()=>{try{state.db=JSON.parse(r.result);save();render();toast('Datos importados')}catch{toast('Archivo inválido','err')}};r.readAsText(file)}
+export function importData(e){const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=()=>{try{state.db=JSON.parse(r.result);save();services.render();toast('Datos importados')}catch{toast('Archivo inválido','err')}};r.readAsText(file)}
 

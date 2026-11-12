@@ -1,4 +1,5 @@
 /** Módulo: views/operations.js */
+import { services } from '../core/services.js';
 import { Chart } from '../vendor.js';
 
 import { state } from '../core/state.js';
@@ -14,12 +15,11 @@ import { downtimeMinutes, eventDate, eventsInPeriod, periodMinutes, periodRange,
 import { machineFilter } from '../features/weekly-import.js';
 
 
-import { getDashPeriod, render } from './dashboard.js';
 
 export function renderMachineTiles(){
   const root=document.getElementById('machineTiles');
   if(!root)return;
-  const period=getDashPeriod();
+  const period=services.getDashPeriod();
   const totalMin=Math.max(1,periodMinutes(period,state.dashRefDate));
   const machines=machineFilter();
   root.innerHTML=machines.map(machine=>{
@@ -60,12 +60,12 @@ export function renderPm(){
 
 export function completePm(i){
  state.db.pm[i][3]=iso(new Date()); const d=new Date(); d.setDate(d.getDate()+({'Semanal':7,'Quincenal':15,'Mensual':30,'Trimestral':90,'Diaria':1}[state.db.pm[i][2]]||30));state.db.pm[i][4]=iso(d);
- state.db.history.unshift([iso(new Date()),'Preventivo',state.db.pm[i][0],`Ejecutado: ${state.db.pm[i][1]}`,'Usuario','Cerrado']);save();render();toast('Preventivo ejecutado y reprogramado');
+ state.db.history.unshift([iso(new Date()),'Preventivo',state.db.pm[i][0],`Ejecutado: ${state.db.pm[i][1]}`,'Usuario','Cerrado']);save();services.render();toast('Preventivo ejecutado y reprogramado');
 }
 
 export function renderWO(){
  const scopeIds=new Set(MACHINES());
- const period=getDashPeriod();
+ const period=services.getDashPeriod();
  const {start,end}=periodRange(period, state.dashRefDate);
  const rows=state.db.workOrders.filter(x=>{
    if(state.selectedMachine && x.machine!==state.selectedMachine) return false;
@@ -90,13 +90,13 @@ export function closeWO(id){
   if(!confirm('¿Cerrar la OT '+id+' de '+x.machine+'?')) return;
   x.status='Cerrada';
   state.db.history.unshift([iso(new Date()),'Correctivo',x.machine,x.fault,x.technician,'Cerrado']);
-  save();render();toast('OT cerrada');
+  save();services.render();toast('OT cerrada');
   flashLastTableRow('woTable');
 }
 
 export function renderEvents(){
  const scopeIds=new Set(MACHINES());
- const period=getDashPeriod();
+ const period=services.getDashPeriod();
  const {start,end}=periodRange(period, state.dashRefDate);
  const list=state.db.events.filter(x=>{
    if(state.selectedMachine && x.machine!==state.selectedMachine) return false;
@@ -241,7 +241,7 @@ export function updateMaquinaDB(i,field,val){
   persistMachineDB();
   toast('Máquina actualizada');
   renderMachineDB();
-  render();
+  services.render();
 }
 
 export function eliminarMaquinaDB(i){
@@ -250,7 +250,7 @@ export function eliminarMaquinaDB(i){
   state.LIVE_MACHINE_DB.splice(i,1);
   persistMachineDB();
   renderMachineDB();
-  render();
+  services.render();
   toast('Máquina eliminada del catálogo');
 }
 
@@ -265,7 +265,7 @@ export function agregarMaquinaDB(){
   const af=document.getElementById('mdbAreaFilter');
   if(af){ af.dataset.filled=''; }
   renderMachineDB();
-  render();
+  services.render();
   toast('Máquina agregada');
 }
 
@@ -278,7 +278,7 @@ export function resetMachineDB(){
   const af=document.getElementById('mdbAreaFilter');
   if(af){ af.dataset.filled=''; }
   renderMachineDB();
-  render();
+  services.render();
   toast('Catálogo restaurado');
 }
 

@@ -1,4 +1,5 @@
 /** Módulo: tools/maintenance-tools.js */
+import { services } from '../core/services.js';
 
 import { state } from '../core/state.js';
 
@@ -7,9 +8,8 @@ import { esc, save, toast } from '../core/ui.js';
 import '../domain/machines.js';
 
 
-import { VIEW_CONFIG } from '../ui/navigation.js';
+import { VIEW_CONFIG } from '../core/services.js';
 
-import { render } from '../views/dashboard.js';
 
 state.db.kanban=state.db.kanban||[];
 
@@ -256,5 +256,5 @@ Object.assign(window,{mtAddTask:mtAddTask,mtMoveTask:mtMoveTask,mtDeleteTask:mtD
 
 installUI();
 
-if(typeof render==='function'){try{render();}catch(e){console.warn('[Chiaplast Tools]',e);}}
+try{services.render();}catch(e){console.warn('[Chiaplast Tools]',e);}
 

@@ -1,4 +1,5 @@
 /** Módulo: features/weekly-import.js */
+import { services } from '../core/services.js';
 
 import { state } from '../core/state.js';
 
@@ -10,7 +11,6 @@ import { MACHINES, iso, parseKg } from '../domain/machines.js';
 
 import { ensurePerson } from './team.js';
 
-import { render } from '../views/dashboard.js';
 
 export function machineFilter(){
   const ids=new Set(MACHINES());
@@ -247,7 +247,7 @@ export function importWeeklyReport(){
 
   document.getElementById('weeklyPreview').innerHTML='';
   document.getElementById('weeklyPaste').value='';
-  render();
+  services.render();
   toast(imported+' filas agregadas al historial');
   setTimeout(()=>{ const w=document.getElementById('importProgressWrap'); if(w) w.style.display='none'; }, 1800);
 }

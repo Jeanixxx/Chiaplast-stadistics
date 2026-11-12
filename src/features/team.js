@@ -1,4 +1,5 @@
 /** Módulo: features/team.js */
+import { services } from '../core/services.js';
 import { Chart } from '../vendor.js';
 
 import { state } from '../core/state.js';
@@ -11,7 +12,6 @@ import { periodRange } from '../domain/production.js';
 
 import { renderMealEmpleados } from './meals.js';
 
-import { closeModal } from '../ui/modals.js';
 
 function difficultyScore(p){
   const s=String(p||'').toLowerCase();
@@ -238,6 +238,6 @@ export function savePerson(){
   const id=state.db.meal.config.nextId||(Math.max(0,...state.db.meal.employees.map(x=>x.id))+1);
   state.db.meal.employees.push({id,nombre:n,grupo:g,turnoNoche:false,enCapacitacion:false,ausencias:'',ultimaFecha:'',vecesAsignado:0,activo:true,rol:r,especialidad:e,estado:s});
   state.db.meal.config.nextId=id+1;
-  save(); closeModal(); renderTeam(); renderMealEmpleados(); toast(n+' agregado');
+  save(); services.closeModal(); renderTeam(); renderMealEmpleados(); toast(n+' agregado');
 }
 

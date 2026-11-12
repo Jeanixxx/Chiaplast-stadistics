@@ -1,5 +1,19 @@
 /** Módulo: bootstrap.js */
 
+import { services } from './core/services.js';
+import { render, getDashPeriod, syncPeriodControls, updateDashPeriodLabel } from './views/dashboard.js';
+import { syncMaintenanceStorageFromDb } from './features/monthly-import.js';
+import { destroyCharts, destroyFinCharts } from './ui/charts.js';
+import { invalidateHistoryCache } from './views/history.js';
+import { fillFichaMachineSelect } from './views/backlog.js';
+import { fillNegligenciaMachineSelect } from './features/purchases.js';
+
+// Registro de servicios de capas superiores (ver src/core/services.js). Debe ir antes de cualquier llamada a save()/render().
+Object.assign(services, {
+  render, getDashPeriod, syncMaintenanceStorageFromDb, destroyCharts, destroyFinCharts, invalidateHistoryCache,
+  fillAreaSelectUI, fillReportMachineSelect, fillFinMachineSelect, fillFichaMachineSelect, fillNegligenciaMachineSelect,
+  syncPeriodControls, updateDashPeriodLabel, closeModal, navigateToView, save,
+});
 // Arranque: sincroniza el almacenamiento de mantenimiento antes de renderizar (antes era una sentencia suelta en monthly-import).
 importMaintenanceStorageIntoDb();
 save();
@@ -19,7 +33,6 @@ import { importMaintenanceStorageIntoDb } from './features/monthly-import.js';
 
 import { closeModal, fillAreaSelectUI, navigateToView, openModal } from './ui/modals.js';
 
-import { syncPeriodControls, updateDashPeriodLabel } from './views/dashboard.js';
 
 document.getElementById('m_lunes').value=iso(mProximoLunes());
 

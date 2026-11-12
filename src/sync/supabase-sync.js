@@ -1,4 +1,5 @@
 /** Módulo: sync/supabase-sync.js */
+import { services } from '../core/services.js';
 
 import { createClient } from '../vendor.js';
 
@@ -8,7 +9,6 @@ import { save, saveHooks } from '../core/ui.js';
 
 import '../domain/machines.js';
 
-import { render } from '../views/dashboard.js';
 
 const SUPABASE_URL = 'https://kxediwwncowzksycazdt.supabase.co';
 
@@ -503,7 +503,7 @@ async function syncAll() {
         syncingRemote = true;
         try {
           save();
-          if (typeof render === 'function') render();
+          services.render();
         } finally {
           syncingRemote = false;
         }

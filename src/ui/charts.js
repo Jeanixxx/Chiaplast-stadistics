@@ -1,4 +1,5 @@
 /** Módulo: ui/charts.js */
+import { services } from '../core/services.js';
 
 import { state } from '../core/state.js';
 
@@ -8,7 +9,6 @@ import { MACHINES } from '../domain/machines.js';
 
 import { eventsInPeriod, productionFromEvents } from '../domain/production.js';
 
-import { getDashPeriod } from '../views/dashboard.js';
 
 export function destroyCharts(){
   Object.values(state.charts).forEach(c=>{try{c.destroy()}catch{}});
@@ -28,7 +28,7 @@ export function safeChartDestroy(bag, key){
 }
 
 export function renderEventRankings(){
-  const period=getDashPeriod();
+  const period=services.getDashPeriod();
   const ids=MACHINES(), mapEv={}, mapMin={}, mapWaste={};
   ids.forEach(id=>{mapEv[id]=0;mapMin[id]=0;mapWaste[id]=0;});
   eventsInPeriod(null,period,true,state.dashRefDate).forEach(e=>{

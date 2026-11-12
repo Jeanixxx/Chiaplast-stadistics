@@ -1,4 +1,7 @@
 /** Módulo: ui/navigation.js */
+import { services } from '../core/services.js';
+import { VIEW_CONFIG } from '../core/services.js';
+export { VIEW_CONFIG };
 
 import { state } from '../core/state.js';
 
@@ -8,9 +11,8 @@ import { renderFinanciero } from '../features/financial.js';
 
 import { renderMealBoard, renderMealEmpleados, renderMealHistorial } from '../features/meals.js';
 
-import { fillNegligenciaMachineSelect, renderNegligencia } from '../features/purchases.js';
+import { renderNegligencia } from '../features/purchases.js';
 
-import { fillReportMachineSelect } from '../features/report-pdf.js';
 
 import { renderTeam } from '../features/team.js';
 
@@ -24,7 +26,7 @@ import { renderCards, renderEvents, renderPm, renderWO } from '../views/operatio
 
 import { renderPmRecommendations } from '../views/pm-recommendations.js';
 
-export const VIEW_CONFIG={
+Object.assign(VIEW_CONFIG, {
   dashboard:{title:'Dashboard',render:renderDashboard},
   semanaPlanta:{title:'Semana de la planta',render:renderSemanaPlanta},
   fichaMaquina:{title:'Ficha de máquina',render:renderFichaMaquina},
@@ -47,13 +49,13 @@ export const VIEW_CONFIG={
     renderMealEmpleados();
     renderMealHistorial();
   }},
-  informes:{title:'Informes PDF',render:fillReportMachineSelect},
+  informes:{title:'Informes PDF',render:()=>services.fillReportMachineSelect()},
   negligencia:{title:'Gestión financiera',render:()=>{
-    fillNegligenciaMachineSelect();
+    services.fillNegligenciaMachineSelect();
     renderNegligencia();
   }},
   backlog:{title:'Backlog (SMRP 5.4.9)',render:renderBacklog},
   tableroCompra:{title:'Tablero de compra',render:renderTableroCompra},
   financiero:{title:'Justificación de compras',render:renderFinanciero}
-};
+});
 

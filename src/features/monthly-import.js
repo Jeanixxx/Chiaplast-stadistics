@@ -1,4 +1,5 @@
 /** Módulo: features/monthly-import.js */
+import { services } from '../core/services.js';
 
 import { state } from '../core/state.js';
 
@@ -12,7 +13,6 @@ import { ensurePerson } from './team.js';
 
 import { durationToHours, durationToMinutes, normalizeMachine, parseDuration } from './weekly-import.js';
 
-import { render } from '../views/dashboard.js';
 
 // ================= REPORTE MENSUAL =================
 
@@ -220,7 +220,7 @@ export function importMonthlyReport(){
 
   document.getElementById('monthlyPreview').innerHTML='';
   document.getElementById('monthlyPaste').value='';
-  render();
+  services.render();
   toast(imported+' filas del reporte mensual agregadas');
 }
 

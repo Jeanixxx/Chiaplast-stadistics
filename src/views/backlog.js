@@ -1,4 +1,5 @@
 /** Módulo: views/backlog.js */
+import { services } from '../core/services.js';
 import { Chart } from '../vendor.js';
 
 import { predecirProximaFalla } from '../domain/predictions.js';
@@ -14,7 +15,6 @@ import { downtimeMinutes, eventsInPeriod, periodMinutes, productionHybrid } from
 
 import { safeChartDestroy } from '../ui/charts.js';
 
-import { getDashPeriod } from './dashboard.js';
 
 // ================= BACKLOG SMRP 5.4.9 (READY BACKLOG) =================
 
@@ -48,7 +48,7 @@ function getBacklogStats(){
 }
 
 export function renderSemanaPlanta(){
-  const period=getDashPeriod();
+  const period=services.getDashPeriod();
   const evs=eventsInPeriod(null, period, true, state.dashRefDate);
   const mins=downtimeMinutes(evs);
   const hybrid=productionHybrid(evs);
@@ -160,7 +160,7 @@ export function renderFichaMaquina(){
   const box=document.getElementById('fichaContent');
   if(!box) return;
   if(!mid){ box.innerHTML='<div class="empty">Selecciona una máquina</div>'; return; }
-  const period=getDashPeriod();
+  const period=services.getDashPeriod();
   const evs=eventsInPeriod(mid, period, false, state.dashRefDate);
   const mins=downtimeMinutes(evs);
   const totalMin=periodMinutes(period, state.dashRefDate);
@@ -234,7 +234,7 @@ export function renderFichaMaquina(){
 }
 
 export function renderTableroCompra(){
-  const period=getDashPeriod();
+  const period=services.getDashPeriod();
   const evs=eventsInPeriod(null, period, true, state.dashRefDate);
   const map={};
   evs.forEach(e=>{

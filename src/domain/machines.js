@@ -1,22 +1,17 @@
 /** Módulo: domain/machines.js */
 
 import { state } from '../core/state.js';
+import { services } from '../core/services.js';
 
-import { esc, save } from '../core/ui.js';
+import { esc } from '../core/format.js';
 
 import { seed, seedMealEmployees } from '../data/seed.js';
 
-import { fillFinMachineSelect } from '../features/financial.js';
 
-import { fillNegligenciaMachineSelect } from '../features/purchases.js';
 
-import { fillReportMachineSelect } from '../features/report-pdf.js';
 
-import { fillAreaSelectUI } from '../ui/modals.js';
 
-import { fillFichaMachineSelect } from '../views/backlog.js';
 
-import { render } from '../views/dashboard.js';
 
 // =============================================================================
 // BASE DE DATOS EDITABLE DE ÁREAS Y MÁQUINAS
@@ -166,11 +161,11 @@ export function syncMachines(opts){
     const ids=new Set(state.LIVE_MACHINE_DB.map(r=>r.code));
     state.db.machines=state.db.machines.filter(m=>ids.has(m.id));
   }
-  try{ fillAreaSelectUI(); }catch{}
-  try{ fillReportMachineSelect(); }catch{}
-  try{ fillFinMachineSelect(); }catch{}
-  try{ fillFichaMachineSelect(); }catch{}
-  try{ fillNegligenciaMachineSelect(); }catch{}
+  try{ services.fillAreaSelectUI(); }catch{}
+  try{ services.fillReportMachineSelect(); }catch{}
+  try{ services.fillFinMachineSelect(); }catch{}
+  try{ services.fillFichaMachineSelect(); }catch{}
+  try{ services.fillNegligenciaMachineSelect(); }catch{}
   const af=document.getElementById('mdbAreaFilter');
   if(af){
     const cur=af.value;
@@ -178,13 +173,13 @@ export function syncMachines(opts){
     af.dataset.filled='1';
     if(cur) af.value=cur;
   }
-  if(opts&&opts.render){ try{ render(); }catch{} }
+  if(opts&&opts.render){ try{ services.render(); }catch{} }
 }
 
 export function persistMachineDB(){
   localStorage.setItem('SL_MACHINE_DB_CUSTOM', JSON.stringify(state.LIVE_MACHINE_DB));
   syncMachines();
-  if(typeof state.db!=='undefined' && state.db) try{ save(); }catch{}
+  if(typeof state.db!=='undefined' && state.db) try{ services.save(); }catch{}
 }
 
 state.currentArea = state.AREA_ORDER[0] || 'Cam';
@@ -197,24 +192,7 @@ export const allMachineIds = ()=> [...new Set(Object.values(AREAS).flat())];
 
 export const MACHINES = ()=> isAllAreas() ? allMachineIds() : (AREAS[state.currentArea] || []);
 
-export const now=new Date();
-
-export function iso(d){
-  const x=d?new Date(d):new Date();
-  if(typeof d==='string' && /^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
-  const y=x.getFullYear(), m=String(x.getMonth()+1).padStart(2,'0'), day=String(x.getDate()).padStart(2,'0');
-  return y+'-'+m+'-'+day;
-}
-
-export function parseLocalDate(s){
-  const str=String(s||'').trim();
-  let m=str.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if(m) return new Date(+m[1], +m[2]-1, +m[3], 12, 0, 0);
-  m=str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-  if(m) return new Date(+m[3], +m[2]-1, +m[1], 12, 0, 0);
-  const d=new Date(str);
-  return isNaN(d)?new Date():d;
-}
+export { now, iso, parseLocalDate } from './dates.js';
 
 export function parseKg(v){
   if(v==null||v==='') return 0;

@@ -1,4 +1,5 @@
 /** Módulo: features/financial.js */
+import { services } from '../core/services.js';
 import { jsPDF } from '../vendor.js';
 import { Chart } from '../vendor.js';
 
@@ -10,7 +11,6 @@ import { MACHINES, iso } from '../domain/machines.js';
 
 import { downtimeMinutes, eventsInPeriod } from '../domain/production.js';
 
-import { getDashPeriod } from '../views/dashboard.js';
 
 // ================= JUSTIFICACIÓN FINANCIERA DE COMPRAS =================
 
@@ -38,7 +38,7 @@ export function usarHorasRealesFin(showToast){
     if(showToast!==false) toast('Selecciona una máquina para usar horas reales','err');
     return;
   }
-  const period=getDashPeriod();
+  const period=services.getDashPeriod();
   const evs=eventsInPeriod(machine, period, false, state.dashRefDate);
   const mins=downtimeMinutes(evs);
   const hours=+(mins/60).toFixed(2);
@@ -56,7 +56,7 @@ export function usarHorasRealesFin(showToast){
 }
 
 export function renderFinanciero(){
-  fillFinMachineSelect();
+  services.fillFinMachineSelect();
   const machine=document.getElementById('finMachine')?.value||'';
   const costoRefaccion=Number(document.getElementById('finCostoRefaccion')?.value)||0;
   const horasHombre=Number(document.getElementById('finHorasHombre')?.value)||0;
@@ -244,7 +244,7 @@ export async function exportarFinancieroPDF(){
     doc.text('Analisis financiero - Justificacion de compras',40,y); y+=22;
     doc.setFontSize(11);
     doc.text('Maquina: '+(state.finData.machine||'—')+'  |  Fecha: '+new Date().toLocaleDateString('es-MX'),40,y); y+=20;
-    doc.text('Periodo ref.: '+getDashPeriod()+' · '+state.dashRefDate,40,y); y+=28;
+    doc.text('Periodo ref.: '+services.getDashPeriod()+' · '+state.dashRefDate,40,y); y+=28;
     doc.setFontSize(12);
     doc.text('Desglose de costos',40,y); y+=18;
     doc.setFontSize(10);
@@ -292,7 +292,7 @@ export function copiarFinanciero(){
 =============================================
 Maquina: ${state.finData.machine||'—'}
 Fecha: ${new Date().toLocaleDateString('es-MX')}
-Periodo: ${getDashPeriod()} · ${state.dashRefDate}
+Periodo: ${services.getDashPeriod()} · ${state.dashRefDate}
 
 DESGLOSE:
 - Refaccion: $${state.finData.costoRefaccion.toLocaleString('es-MX')}

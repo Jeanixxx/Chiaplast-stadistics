@@ -1,4 +1,5 @@
 /** Módulo: views/machine-detail.js */
+import { services } from '../core/services.js';
 import { Chart } from '../vendor.js';
 
 import { state } from '../core/state.js';
@@ -11,7 +12,6 @@ import { downtimeMinutes, eventDate, eventsInPeriod, periodMinutes, periodRange,
 
 import { destroyCharts, renderEventRankings } from '../ui/charts.js';
 
-import { getDashPeriod, syncPeriodControls, updateDashPeriodLabel } from './dashboard.js';
 
 import { renderHistory } from './history.js';
 
@@ -24,8 +24,8 @@ export function setMachinePeriod(p,btn){
   window.dashPeriod=p; // mantiene coherencia con el periodo global del sidebar
   document.querySelectorAll('#dashActivePanel .tab').forEach(x=>x.classList.remove('active'));
   if(btn) btn.classList.add('active');
-  syncPeriodControls();
-  updateDashPeriodLabel();
+  services.syncPeriodControls();
+  services.updateDashPeriodLabel();
   renderMachineDetail();
   // También refresca pestañas que dependen del periodo
   renderWO(); renderEvents(); renderHistory();
@@ -100,9 +100,9 @@ export function renderMachineDetail(){
 
 export function renderCharts(){
   destroyCharts();
-  updateDashPeriodLabel();
-  syncPeriodControls();
-  const period=getDashPeriod();
+  services.updateDashPeriodLabel();
+  services.syncPeriodControls();
+  const period=services.getDashPeriod();
   const areaEvents=eventsInPeriod(null,period,true,state.dashRefDate);
   const scopeIds=new Set(MACHINES());
 

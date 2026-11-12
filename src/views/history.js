@@ -1,4 +1,5 @@
 /** Módulo: views/history.js */
+import { services } from '../core/services.js';
 
 import { state } from '../core/state.js';
 
@@ -8,7 +9,6 @@ import { MACHINES, isAllAreas, iso, parseLocalDate } from '../domain/machines.js
 
 import { eventsInPeriod, periodRange } from '../domain/production.js';
 
-import { getDashPeriod } from './dashboard.js';
 
 const historySelected=new Set();
 
@@ -19,7 +19,7 @@ export function invalidateHistoryCache(){ state._histFilterCache={key:'', rows:n
 function historyFilteredRows(){
  const q=(document.getElementById('historyFilter')?.value||'').toLowerCase();
  const scopeIds=new Set(MACHINES());
- const period=getDashPeriod();
+ const period=services.getDashPeriod();
  const {start,end}=periodRange(period, state.dashRefDate);
  const key=[q,state.selectedMachine||'',state.currentArea||'',period,state.dashRefDate,iso(start),iso(end),state.db.history.length].join('|');
  if(state._histFilterCache.key===key && state._histFilterCache.rows) return state._histFilterCache.rows;
@@ -90,7 +90,7 @@ export function renderHistory(){
  if(state.historyPage>=pages) state.historyPage=pages-1;
  if(state.historyPage<0) state.historyPage=0;
  const slice=rows.slice(state.historyPage*limit, state.historyPage*limit+limit);
- const period=getDashPeriod();
+ const period=services.getDashPeriod();
  const {start,end}=periodRange(period, state.dashRefDate);
  const hl=document.getElementById('historyFilterLabel');
  if(hl){
@@ -120,7 +120,7 @@ export function historyEditDesc(idx,value){if(!state.db.history[idx])return;stat
 export function historyDeleteRow(idx){if(!state.db.history[idx])return;if(!confirm('¿Eliminar este registro del historial?'))return;state.db.history.splice(idx,1);historySelected.delete(idx);invalidateHistoryCache();save();renderHistory();toast('Registro eliminado');}
 
 export function recomendarRefacciones(){
-  const period=getDashPeriod();
+  const period=services.getDashPeriod();
   const evs=eventsInPeriod(null, period, true, state.dashRefDate);
   const comps={};
   evs.forEach(e=>{
