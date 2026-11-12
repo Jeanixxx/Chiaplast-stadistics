@@ -40,7 +40,7 @@ La clave de cliente configurada es una publishable key. Nunca agregar una clave 
 ```bash
 npm ci          # dependencias exactas (lockfile)
 npm run build   # genera dist/: bundle JavaScript, HTML, CSS, manifest y service worker
-npm test        # prueba de humo en Chromium sobre dist/ (requiere Playwright; ver abajo)
+npm test        # pruebas unitarias + prueba de humo en Chromium sobre dist/ (requiere Playwright; ver abajo)
 ```
 
 - Las librerías (Chart.js, jsPDF y Supabase) se empaquetan dentro de `dist/app.js`; ya no se cargan desde CDN.
@@ -61,8 +61,12 @@ src/
   main.js                Entrada: orden de carga, handlers expuestos en window y service worker
   vendor.js              Chart.js, jsPDF y Supabase empaquetados (globales window.Chart, window.jspdf, window.supabase)
   core/state.js          Estado mutable único (state.db, state.currentView, ...)
-  core/ui.js             Guardado (save + hooks), notificaciones, utilidades de escape, preferencias
+  core/services.js       Registro de servicios de capas superiores (render, navegación, selectores); lo completa bootstrap.js
+  core/format.js         Escape HTML y badges (puros)
+  core/ui.js             Guardado (save + hooks), notificaciones, preferencias
   data/seed.js           Datos iniciales (semilla)
+  domain/dates.js        Fechas locales puras (iso, parseLocalDate, now)
+  domain/proxima-falla.js  Cálculo puro de próxima falla (con pruebas unitarias)
   domain/                Reglas de negocio sin DOM: máquinas, clasificación de fallas, producción, predicciones
   features/              Flujos: importación semanal/mensual, equipo, comidas, informes PDF, compras, financiero
   ui/                    Navegación, modales, gráficas
@@ -70,12 +74,13 @@ src/
   tools/maintenance-tools.js  Kanban, recordatorios, notas técnicas, chequeos diarios y preventivo
   sync/supabase-sync.js  Autenticación y sincronización con Supabase (usa saveHooks; no reemplaza funciones globales)
   styles/styles.css      Estilos
-  pwa/sw.template.js     Plantilla del service worker (build genera versión de caché y lista de precarga)
+pwa/sw.template.js       Plantilla del service worker (el build genera versión de caché y lista de precarga)
 scripts/build-web.mjs    Build con esbuild
+tests/unit.mjs           Pruebas unitarias de lógica pura
 tests/smoke.mjs          Prueba de humo end-to-end
 ```
 
-Convenciones: los módulos se comunican por `import`/`export`; el estado compartido vive solo en `state`. Solo los handlers que el HTML invoca (`onclick="..."`) se exponen en `window`.
+Convenciones: los módulos se comunican por `import`/`export`; el estado compartido vive solo en `state`. Las capas bajas (núcleo, dominio, features) no importan vistas ni modales: llaman a `services`, que `bootstrap.js` completa. El grafo de imports no tiene ciclos. Solo los handlers que el HTML invoca (`onclick="..."`) se exponen en `window`.
 
 ## Interfaz de acceso y estado de sincronización
 
