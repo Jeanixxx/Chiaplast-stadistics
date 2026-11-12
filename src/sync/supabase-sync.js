@@ -6,7 +6,7 @@ import { state } from '../core/state.js';
 
 import { save, saveHooks } from '../core/ui.js';
 
-import { now } from '../domain/machines.js';
+import '../domain/machines.js';
 
 import { render } from '../views/dashboard.js';
 
@@ -62,8 +62,8 @@ const SINGLETONS = [
     { key: 'config.crew', type: 'configuracion', get: () => state.db.crew, set: v => { state.db.crew = v; } },
     { key: 'config.meal', type: 'configuracion', get: () => state.db.meal?.config, set: v => { if (!state.db.meal) state.db.meal = {}; state.db.meal.config = v; } },
     { key: 'config.finanzas', type: 'configuracion_financiera',
-      get: () => { try { return JSON.parse(localStorage.getItem('SL_FIN_CONFIG') || 'null'); } catch (_) { return null; } },
-      set: v => { try { localStorage.setItem('SL_FIN_CONFIG', JSON.stringify(v)); } catch (_) {} } }
+      get: () => { try { return JSON.parse(localStorage.getItem('SL_FIN_CONFIG') || 'null'); } catch { return null; } },
+      set: v => { try { localStorage.setItem('SL_FIN_CONFIG', JSON.stringify(v)); } catch {} } }
   ];
 
 function status(message, kind = 'info') {
@@ -150,14 +150,14 @@ function isTuple(row) { return Array.isArray(row); }
 
 function readMeta(key, fallback) {
     try { return Object.assign({}, JSON.parse(localStorage.getItem(key) || '{}')); }
-    catch (_) { return {}; }
+    catch { return {}; }
   }
 
 function singletonId(key) {
     const ids = readMeta('SL_SUPABASE_SINGLETON_IDS_V1');
     if (!ids[key]) {
       ids[key] = uuid();
-      try { localStorage.setItem('SL_SUPABASE_SINGLETON_IDS_V1', JSON.stringify(ids)); } catch (_) {}
+      try { localStorage.setItem('SL_SUPABASE_SINGLETON_IDS_V1', JSON.stringify(ids)); } catch {}
     }
     return ids[key];
   }
@@ -166,7 +166,7 @@ function singletonTimestamp(key, value) {
     const times = readMeta('SL_SUPABASE_SINGLETON_TIMES_V1');
     if (value !== undefined) {
       times[key] = value || '';
-      try { localStorage.setItem('SL_SUPABASE_SINGLETON_TIMES_V1', JSON.stringify(times)); } catch (_) {}
+      try { localStorage.setItem('SL_SUPABASE_SINGLETON_TIMES_V1', JSON.stringify(times)); } catch {}
     }
     return times[key] || '';
   }
@@ -274,11 +274,11 @@ function snapshotNow() {
 
 function getPendingDeletions() {
     try { return JSON.parse(localStorage.getItem(PENDING_DELETIONS_KEY) || '[]'); }
-    catch (_) { return []; }
+    catch { return []; }
   }
 
 function setPendingDeletions(items) {
-    try { localStorage.setItem(PENDING_DELETIONS_KEY, JSON.stringify(items)); } catch (_) {}
+    try { localStorage.setItem(PENDING_DELETIONS_KEY, JSON.stringify(items)); } catch {}
   }
 
 function markLocalChanges() {

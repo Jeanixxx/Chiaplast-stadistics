@@ -133,7 +133,7 @@ export function renderTeam(){
   if(k2) k2.textContent=gst.hours.toFixed(1)+' h';
   if(k3) k3.textContent=gst.count?gst.avgDiff.toFixed(1):'—';
 
-  if(state.charts.teamHours){try{state.charts.teamHours.destroy()}catch(e){}}
+  if(state.charts.teamHours){try{state.charts.teamHours.destroy()}catch{}}
   const hctx=document.getElementById('teamHoursChart');
   if(hctx){
     const rk=ranking.slice().sort((a,b)=>a.hours-b.hours);
@@ -194,7 +194,7 @@ export function renderPersonAnalysis(){
     }).join('');
   }
 
-  if(state.charts.personType){try{state.charts.personType.destroy()}catch(e){}}
+  if(state.charts.personType){try{state.charts.personType.destroy()}catch{}}
   const ctx=document.getElementById('personTypeChart');
   if(ctx){
     const labels=Object.keys(st.byType);

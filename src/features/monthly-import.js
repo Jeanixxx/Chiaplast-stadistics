@@ -2,7 +2,7 @@
 
 import { state } from '../core/state.js';
 
-import { badge, esc, save, toast } from '../core/ui.js';
+import { badge, esc, toast } from '../core/ui.js';
 
 import { camposClasificacion } from '../domain/failure-classifier.js';
 
@@ -232,7 +232,7 @@ export function clearMonthlyImport(){
 /* Puente de las herramientas de mantenimiento con la base operativa sincronizada */
 
 export function importMaintenanceStorageIntoDb(){
-  const readArray=key=>{try{const value=JSON.parse(localStorage.getItem(key)||'[]');return Array.isArray(value)?value:[]}catch(_){return[]}};
+  const readArray=key=>{try{const value=JSON.parse(localStorage.getItem(key)||'[]');return Array.isArray(value)?value:[]}catch{return[]}};
   const mergeMissing=(current,incoming)=>{
     const result=Array.isArray(current)?current.slice():[];
     const ids=new Set(result.map(item=>item&&String(item.id||item._supabaseId||item.folio||'')).filter(Boolean));
@@ -255,14 +255,14 @@ export function importMaintenanceStorageIntoDb(){
       const board=JSON.parse(localStorage.getItem(key)||'null');
       if(board)boards.push({id:'board:'+month,_syncKind:'pmBoard',month,board,updatedAt:new Date().toISOString()});
     }
-  }catch(_){}
+  }catch{}
   state.db.pmChecks=orders.concat(boards);
 }
 
 
 
 export function syncMaintenanceStorageFromDb(){
-  const put=(key,value)=>{try{const raw=JSON.stringify(value);if(localStorage.getItem(key)!==raw)localStorage.setItem(key,raw)}catch(_){}};
+  const put=(key,value)=>{try{const raw=JSON.stringify(value);if(localStorage.getItem(key)!==raw)localStorage.setItem(key,raw)}catch{}};
   put('mtto_kanban',Array.isArray(state.db.kanban)?state.db.kanban:[]);
   put('mtto_reminders',Array.isArray(state.db.reminders)?state.db.reminders:[]);
   put('mtto_hist',Array.isArray(state.db.dailyChecks)?state.db.dailyChecks:[]);

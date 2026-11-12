@@ -4,7 +4,7 @@ import { Chart } from '../vendor.js';
 
 import { state } from '../core/state.js';
 
-import { badge, esc, saveFinConfig, toast } from '../core/ui.js';
+import { esc, saveFinConfig, toast } from '../core/ui.js';
 
 import { MACHINES, iso } from '../domain/machines.js';
 
@@ -118,7 +118,7 @@ export function renderFinanciero(){
 function renderWaterfall(costoRef, costoHH, costoProd, multas, total){
   const ctx=document.getElementById('waterfallChart');
   if(!ctx) return;
-  if(state.finCharts.waterfall){ try{state.finCharts.waterfall.destroy()}catch(e){} }
+  if(state.finCharts.waterfall){ try{state.finCharts.waterfall.destroy()}catch{} }
   if(total<=0 && costoRef<=0 && costoHH<=0 && costoProd<=0 && multas<=0){
     state.finCharts.waterfall=new Chart(ctx,{
       type:'bar',
@@ -168,7 +168,7 @@ function renderWaterfall(costoRef, costoHH, costoProd, multas, total){
 function renderStackedBar(costoRef, costoHH, costoProd, multas, total){
   const ctx=document.getElementById('stackedBarChart');
   if(!ctx) return;
-  if(state.finCharts.stacked){ try{state.finCharts.stacked.destroy()}catch(e){} }
+  if(state.finCharts.stacked){ try{state.finCharts.stacked.destroy()}catch{} }
   state.finCharts.stacked=new Chart(ctx,{
     type:'bar',
     data:{
@@ -197,7 +197,7 @@ function renderStackedBar(costoRef, costoHH, costoProd, multas, total){
 function renderAreaChart(perdidaHora, horas){
   const ctx=document.getElementById('areaChart');
   if(!ctx) return;
-  if(state.finCharts.area){ try{state.finCharts.area.destroy()}catch(e){} }
+  if(state.finCharts.area){ try{state.finCharts.area.destroy()}catch{} }
   const horasMax=Math.max(Math.ceil(horas*1.5)||12, 12);
   const labels=[], data=[];
   for(let h=0;h<=horasMax;h++){
@@ -313,7 +313,7 @@ Ahorro estimado con stock preventivo: $${state.finData.ahorro.toLocaleString('es
 function fallbackCopy(texto){
   const ta=document.createElement('textarea');
   ta.value=texto; document.body.appendChild(ta); ta.select();
-  try{ document.execCommand('copy'); toast('Resumen copiado'); }catch(e){ toast('No se pudo copiar','err'); }
+  try{ document.execCommand('copy'); toast('Resumen copiado'); }catch{ toast('No se pudo copiar','err'); }
   document.body.removeChild(ta);
 }
 

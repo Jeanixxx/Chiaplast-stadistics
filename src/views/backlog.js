@@ -73,7 +73,6 @@ export function renderSemanaPlanta(){
   const areaTxt=isAllAreas()?'Toda la planta':state.currentArea;
   const kpis=document.getElementById('spKpis');
   if(kpis){
-    const ratioCls=bk.ratio>=2&&bk.ratio<=4?'b-ok':bk.ratio<2?'b-warn':'b-bad';
     kpis.innerHTML=[
       ['Alcance',areaTxt,state.selectedMachine||'Todas las máquinas'],
       ['Paro total',(mins/60).toFixed(1)+' h',evs.length+' eventos'],
@@ -309,7 +308,7 @@ export function renderBacklog(){
   document.getElementById('bkNetCapacity').textContent=st.netCapacity.toFixed(1);
   document.getElementById('bkRatio').textContent=st.ratio.toFixed(2)+' sem.';
 
-  if(state.charts.backlog){try{state.charts.backlog.destroy()}catch(e){}}
+  if(state.charts.backlog){try{state.charts.backlog.destroy()}catch{}}
   state.charts.backlog=new Chart(document.getElementById('backlogChart'),{type:'bar',data:{labels:['Ready Work (h)','Net Crew Capacity (h/sem)'],datasets:[{data:[st.readyWork,st.netCapacity],backgroundColor:[st.ratio>=2&&st.ratio<=4?'#22c55e':st.ratio<2?'#f59e0b':'#ef4444','#3b82f6']}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},title:{display:true,text:'Referencia sana SMRP: 2 a 4 semanas de Ready Backlog'}}}});
 }
 

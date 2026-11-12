@@ -3,7 +3,7 @@
  * y expone en window solo los handlers referenciados desde el HTML (onclick, onchange, ...).
  */
 import './vendor.js';
-import { state } from './core/state.js';
+import './core/state.js';
 import './domain/machines.js';
 import './data/seed.js';
 import { reclasificarEventosExistentes } from './domain/failure-classifier.js';

@@ -150,7 +150,7 @@ export function renderEvents(){
  renderTopList(countField('modo_falla'),'topModos');
 
  // Donut por tipo de evento
- if(state.charts.event){try{state.charts.event.destroy()}catch(e){}}
+ if(state.charts.event){try{state.charts.event.destroy()}catch{}}
  const evTypes={};
  list.forEach(x=>evTypes[x.type]=(evTypes[x.type]||0)+(Number(x.minutes)||0)/60);
  const evCtx=document.getElementById('eventChart');
@@ -159,7 +159,7 @@ export function renderEvents(){
  }
 
  // Barras por componente (o clasificación principal)
- if(state.charts.categorias){try{state.charts.categorias.destroy()}catch(e){}}
+ if(state.charts.categorias){try{state.charts.categorias.destroy()}catch{}}
  const conteo={};
  list.forEach(ev=>{
    const cat=(ev.componente && ev.componente!=='No especificado')?ev.componente:(ev.clasificacion||'No clasificada');
@@ -198,7 +198,7 @@ function renderKeywordChart(scopedEvents){
  document.getElementById('keywordListLabel').textContent='Buscando en el filtro actual: '+list.join(' · ');
  const counts=list.map(k=>({k,matches:pool.filter(x=>(x.desc||'').toLowerCase().includes(k.toLowerCase()))}));
  counts.sort((a,b)=>b.matches.length-a.matches.length);
- if(state.charts.keyword){try{state.charts.keyword.destroy()}catch(e){}}
+ if(state.charts.keyword){try{state.charts.keyword.destroy()}catch{}}
  const cv=document.getElementById('keywordChart');
  if(cv){
    state.charts.keyword=new Chart(cv,{type:'bar',data:{labels:counts.map(c=>c.k),datasets:[{label:'Menciones en fallas',data:counts.map(c=>c.matches.length),backgroundColor:'#f59e0b'}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{beginAtZero:true}}}});

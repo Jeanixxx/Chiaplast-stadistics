@@ -9,12 +9,12 @@ import { MACHINE_DB, iso } from '../domain/machines.js';
 
 function preventiveChecklistKey(date){return 'chiaplast-preventive-checklist-v1:'+date;}
 
-function readPreventiveChecklist(date){try{return JSON.parse(localStorage.getItem(preventiveChecklistKey(date))||'{}')||{};}catch(e){return {};}}
+function readPreventiveChecklist(date){try{return JSON.parse(localStorage.getItem(preventiveChecklistKey(date))||'{}')||{};}catch{return {};}}
 
 export function togglePreventiveMachine(machineId,checked){
   const date=document.getElementById('preventiveChecklistDate')?.value||state.dashRefDate;
   const checklist=readPreventiveChecklist(date);checklist[machineId]=!!checked;
-  try{localStorage.setItem(preventiveChecklistKey(date),JSON.stringify(checklist));}catch(e){}
+  try{localStorage.setItem(preventiveChecklistKey(date),JSON.stringify(checklist));}catch{}
   const label=[...document.querySelectorAll('.preventive-machine-item')].find(el=>el.querySelector('input')?.dataset.machine===machineId);
   if(label)label.classList.toggle('is-done',!!checked);
   renderPreventiveChecklistSummary(date);

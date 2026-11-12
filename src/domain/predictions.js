@@ -8,7 +8,7 @@ import { badge, esc } from '../core/ui.js';
 
 import { camposClasificacion, normTxt } from './failure-classifier.js';
 
-import { MACHINES, iso, now, parseLocalDate } from './machines.js';
+import { MACHINES, iso, parseLocalDate } from './machines.js';
 
 const EARLY_SIGNAL_WORDS=['ruido','vibracion','vibración','calentando','calienta','falseaba','falseo','intermitente','chispa','humo','olor','extraño','anomal','prealarm','pre-alarm','sobrecorriente','sobretemperatura'];
 
@@ -161,7 +161,7 @@ export function renderPrediccionesAvanzadas(){
   }
 
   // Patrón semanal
-  if(state.charts.predWeek){ try{state.charts.predWeek.destroy()}catch(e){} }
+  if(state.charts.predWeek){ try{state.charts.predWeek.destroy()}catch{} }
   const days=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
   const counts=new Array(7).fill(0);
   pool.forEach(e=>{

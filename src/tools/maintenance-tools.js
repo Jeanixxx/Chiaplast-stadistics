@@ -4,7 +4,7 @@ import { state } from '../core/state.js';
 
 import { esc, save, toast } from '../core/ui.js';
 
-import { now } from '../domain/machines.js';
+import '../domain/machines.js';
 
 
 import { VIEW_CONFIG } from '../ui/navigation.js';
@@ -43,9 +43,9 @@ var toastT=function(s){if(typeof toast==='function')toast(s);else alert(s);};
 
 var evidenceKey='CP_MAINT_NOTE_EVIDENCE_V1';
 
-var evidenceRead=function(){try{return JSON.parse(localStorage.getItem(evidenceKey)||'{}');}catch(e){return {};}};
+var evidenceRead=function(){try{return JSON.parse(localStorage.getItem(evidenceKey)||'{}');}catch{return {};}};
 
-var evidenceWrite=function(x){try{localStorage.setItem(evidenceKey,JSON.stringify(x));}catch(e){toastT('No hay espacio local suficiente para guardar la evidencia.');}};
+var evidenceWrite=function(x){try{localStorage.setItem(evidenceKey,JSON.stringify(x));}catch{toastT('No hay espacio local suficiente para guardar la evidencia.');}};
 
 function installUI(){
  var main=document.querySelector('main');if(!main)return;
@@ -83,7 +83,7 @@ function compressPhoto(file){return new Promise(function(resolve,reject){var rea
 
 function renderNotes(){var h=$('mtNoteRows');if(!h)return;var ev=evidenceRead();h.innerHTML=state.db.technicalNotes.length?state.db.technicalNotes.map(function(n){return '<div class="card"><div class="flex"><div class="section-title">'+escT(n.title)+'</div><button class="btn" onclick="mtDeleteNote(\''+n.id+'\')">Eliminar</button></div><div class="muted">'+escT(n.date)+' · '+escT(n.area)+' · '+escT(n.machineLabel||'General')+'</div><p style="white-space:pre-wrap">'+escT(n.body)+'</p>'+(ev[n.id]||[]).map(function(src){return '<img src="'+src+'" alt="Evidencia" style="max-width:100%;max-height:220px;object-fit:contain">';}).join('')+'<small class="muted">Texto compartido; fotografías locales</small></div>';}).join(''):'<div class="card muted">No hay notas guardadas.</div>';}
 
-export async function mtAddNote(){var title=$('mtNoteTitle').value.trim(),body=$('mtNoteBody').value.trim();if(!title||!body)return toastT('Completa título y nota.');var id=uid(),code=$('mtNoteMachine').value,m=machines().find(function(x){return x.code===code;}),photos=[];for(var f of Array.from($('mtNotePhotos').files||[]).slice(0,4)){if(f.type.indexOf('image/')===0){try{photos.push(await compressPhoto(f));}catch(e){}}}state.db.technicalNotes.unshift({id:id,title:title,body:body,date:today(),area:$('mtNoteArea').value,machine:code,machineLabel:m?m.area+' · '+m.code:'General',createdAt:new Date().toISOString()});if(photos.length){var ev=evidenceRead();ev[id]=photos;evidenceWrite(ev);}['mtNoteTitle','mtNoteBody','mtNotePhotos'].forEach(function(i){$(i).value='';});persist();renderNotes();}
+export async function mtAddNote(){var title=$('mtNoteTitle').value.trim(),body=$('mtNoteBody').value.trim();if(!title||!body)return toastT('Completa título y nota.');var id=uid(),code=$('mtNoteMachine').value,m=machines().find(function(x){return x.code===code;}),photos=[];for(var f of Array.from($('mtNotePhotos').files||[]).slice(0,4)){if(f.type.indexOf('image/')===0){try{photos.push(await compressPhoto(f));}catch{}}}state.db.technicalNotes.unshift({id:id,title:title,body:body,date:today(),area:$('mtNoteArea').value,machine:code,machineLabel:m?m.area+' · '+m.code:'General',createdAt:new Date().toISOString()});if(photos.length){var ev=evidenceRead();ev[id]=photos;evidenceWrite(ev);}['mtNoteTitle','mtNoteBody','mtNotePhotos'].forEach(function(i){$(i).value='';});persist();renderNotes();}
 
 export function mtDeleteNote(id){if(confirm('¿Eliminar esta nota?')){state.db.technicalNotes=state.db.technicalNotes.filter(function(n){return n.id!==id;});var ev=evidenceRead();delete ev[id];evidenceWrite(ev);persist();renderNotes();}}
 

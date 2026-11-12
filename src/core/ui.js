@@ -15,10 +15,10 @@ import { getDashPeriod, render } from '../views/dashboard.js';
 import { invalidateHistoryCache } from '../views/history.js';
 
 export function hardRefreshApp(){
-  try{ destroyCharts?.(); }catch(e){}
-  try{ destroyFinCharts?.(); }catch(e){}
-  try{ invalidateHistoryCache?.(); }catch(e){}
-  try{ syncMachines?.(); }catch(e){}
+  try{ destroyCharts?.(); }catch{}
+  try{ destroyFinCharts?.(); }catch{}
+  try{ invalidateHistoryCache?.(); }catch{}
+  try{ syncMachines?.(); }catch{}
   try{
     render();
     toast('Interfaz refrescada');
@@ -53,7 +53,7 @@ export function undoLastChange(){
     localStorage.setItem('SL_CMMS_DB_v2', last.data);
     render();
     toast('Cambio deshecho');
-  }catch(e){ toast('No se pudo deshacer','err'); }
+  }catch{ toast('No se pudo deshacer','err'); }
 }
 
 export function toggleFocusMode(){
@@ -79,11 +79,11 @@ function persistDb(){
       UNDO_STACK.push({data:state._prevDbJson,t:Date.now()});
       if(UNDO_STACK.length>UNDO_MAX) UNDO_STACK.shift();
     }
-  }catch(e){}
+  }catch{}
   state._prevDbJson=JSON.stringify(state.db);
   localStorage.setItem('SL_CMMS_DB_v2',state._prevDbJson);
-  try{ syncMaintenanceStorageFromDb(); }catch(e){}
-  try{ invalidateHistoryCache(); }catch(e){}
+  try{ syncMaintenanceStorageFromDb(); }catch{}
+  try{ invalidateHistoryCache(); }catch{}
   saveFinConfig();
 }
 
@@ -98,7 +98,7 @@ export function saveFinConfig(){
       machine:document.getElementById('finMachine')?.value||''
     };
     localStorage.setItem('SL_FIN_CONFIG',JSON.stringify(finConfig));
-  }catch(e){}
+  }catch{}
 }
 
 export function loadFinConfig(){
@@ -120,7 +120,7 @@ export function loadFinConfig(){
       const sel=document.getElementById('finMachine');
       if(sel){ /* se aplica tras fillFinMachineSelect */ window._finMachinePref=c.machine; }
     }
-  }catch(e){}
+  }catch{}
 }
 
 export function toast(msg, type){
@@ -160,7 +160,7 @@ export function saveUiState(){
       dark: document.documentElement.classList.contains('dark'),
       view: state.currentView
     }));
-  }catch(e){}
+  }catch{}
 }
 
 export function loadUiState(){
@@ -174,7 +174,7 @@ export function loadUiState(){
     if(s.date) state.dashRefDate=s.date;
     if(s.dark) document.documentElement.classList.add('dark');
     if(s.view && Object.prototype.hasOwnProperty.call(VIEW_CONFIG,s.view)) state.currentView=s.view;
-  }catch(e){}
+  }catch{}
 }
 
 export function toggleDarkMode(){

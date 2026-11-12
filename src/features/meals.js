@@ -12,7 +12,6 @@ const MEAL_DIAS=['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Dom
 
 const MEAL_ABBR=['LUN','MAR','MIE','JUE','VIE','SAB','DOM'];
 
-function mPad(n){return n<10?'0'+n:''+n}
 
 function mParseISO(s){const p=s.split('-').map(Number);return new Date(p[0],p[1]-1,p[2])}
 

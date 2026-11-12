@@ -11,20 +11,20 @@ import { eventsInPeriod, productionFromEvents } from '../domain/production.js';
 import { getDashPeriod } from '../views/dashboard.js';
 
 export function destroyCharts(){
-  Object.values(state.charts).forEach(c=>{try{c.destroy()}catch(e){}});
+  Object.values(state.charts).forEach(c=>{try{c.destroy()}catch{}});
   state.charts={};
   // También limpia gráficos financieros si se pide un refresh global
-  Object.values(state.finCharts).forEach(c=>{try{c.destroy()}catch(e){}});
+  Object.values(state.finCharts).forEach(c=>{try{c.destroy()}catch{}});
   state.finCharts={};
 }
 
 export function destroyFinCharts(){
-  Object.values(state.finCharts).forEach(c=>{try{c.destroy()}catch(e){}});
+  Object.values(state.finCharts).forEach(c=>{try{c.destroy()}catch{}});
   state.finCharts={};
 }
 
 export function safeChartDestroy(bag, key){
-  if(bag&&bag[key]){ try{ bag[key].destroy(); }catch(e){} bag[key]=null; }
+  if(bag&&bag[key]){ try{ bag[key].destroy(); }catch{} bag[key]=null; }
 }
 
 export function renderEventRankings(){

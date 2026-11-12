@@ -123,7 +123,7 @@ state.LIVE_MACHINE_DB = (()=>{
   try{
     const raw=localStorage.getItem('SL_MACHINE_DB_CUSTOM');
     if(raw){ const arr=JSON.parse(raw); if(Array.isArray(arr)&&arr.length) return arr; }
-  }catch(e){}
+  }catch{}
   return MACHINE_DB.map(r=>({area:r.area,code:r.code,dailyKg:Number(r.dailyKg)||0}));
 })();
 
@@ -166,11 +166,11 @@ export function syncMachines(opts){
     const ids=new Set(state.LIVE_MACHINE_DB.map(r=>r.code));
     state.db.machines=state.db.machines.filter(m=>ids.has(m.id));
   }
-  try{ fillAreaSelectUI(); }catch(e){}
-  try{ fillReportMachineSelect(); }catch(e){}
-  try{ fillFinMachineSelect(); }catch(e){}
-  try{ fillFichaMachineSelect(); }catch(e){}
-  try{ fillNegligenciaMachineSelect(); }catch(e){}
+  try{ fillAreaSelectUI(); }catch{}
+  try{ fillReportMachineSelect(); }catch{}
+  try{ fillFinMachineSelect(); }catch{}
+  try{ fillFichaMachineSelect(); }catch{}
+  try{ fillNegligenciaMachineSelect(); }catch{}
   const af=document.getElementById('mdbAreaFilter');
   if(af){
     const cur=af.value;
@@ -178,13 +178,13 @@ export function syncMachines(opts){
     af.dataset.filled='1';
     if(cur) af.value=cur;
   }
-  if(opts&&opts.render){ try{ render(); }catch(e){} }
+  if(opts&&opts.render){ try{ render(); }catch{} }
 }
 
 export function persistMachineDB(){
   localStorage.setItem('SL_MACHINE_DB_CUSTOM', JSON.stringify(state.LIVE_MACHINE_DB));
   syncMachines();
-  if(typeof state.db!=='undefined' && state.db) try{ save(); }catch(e){}
+  if(typeof state.db!=='undefined' && state.db) try{ save(); }catch{}
 }
 
 state.currentArea = state.AREA_ORDER[0] || 'Cam';

@@ -41,8 +41,8 @@ export function renderNegligencia(){
   document.getElementById('negligenciaTable').innerHTML=state.db.negligencia.map((r,i)=>`<tr><td>${esc(r.fecha)}</td><td>${esc(r.machine)}</td><td>${esc(r.pieza)}</td><td>${esc(r.jefe)}</td><td>${r.horas}</td><td style="max-width:260px">${esc(r.just)}</td><td><button class="btn red" onclick="negligenciaEliminar(${i})">✕</button></td></tr>`).join('')||'<tr><td colspan="7" class="empty">Sin registros</td></tr>';
   const porJefe={},porMaquina={};
   state.db.negligencia.forEach(r=>{porJefe[r.jefe]=(porJefe[r.jefe]||0)+r.horas;porMaquina[r.machine]=(porMaquina[r.machine]||0)+r.horas;});
-  if(state.charts.ngJefe){try{state.charts.ngJefe.destroy()}catch(e){}}
-  if(state.charts.ngMaquina){try{state.charts.ngMaquina.destroy()}catch(e){}}
+  if(state.charts.ngJefe){try{state.charts.ngJefe.destroy()}catch{}}
+  if(state.charts.ngMaquina){try{state.charts.ngMaquina.destroy()}catch{}}
   const j=Object.entries(porJefe).sort((a,b)=>b[1]-a[1]);
   const m=Object.entries(porMaquina).sort((a,b)=>b[1]-a[1]);
   state.charts.ngJefe=new Chart(document.getElementById('negligenciaJefeChart'),{type:'bar',data:{labels:j.length?j.map(x=>x[0]):['Sin datos'],datasets:[{label:'Horas perdidas',data:j.length?j.map(x=>x[1]):[0],backgroundColor:'#a855f7'}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{beginAtZero:true}}}});

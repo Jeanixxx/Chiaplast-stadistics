@@ -73,9 +73,9 @@ export function renderMachineDetail(){
   const compHtml='<div class="muted mt" style="font-size:11px">Comparativa (fecha ref. '+esc(state.dashRefDate)+'):<br>'+comp.map(c=>`<strong>${c.label}</strong> [${esc(c.range)}]: ${c.stops} eventos, ${c.pct}% parado, ${c.hours}h, desperdicio ${c.waste.toLocaleString('es-MX')} kg`).join('<br>')+'</div>';
   document.getElementById('machinePeriodEvents').innerHTML=listHtml+compHtml;
 
-  if(state.charts.machinePie){try{state.charts.machinePie.destroy()}catch(e){}}
-  if(state.charts.machineCause){try{state.charts.machineCause.destroy()}catch(e){}}
-  if(state.charts.machineDay){try{state.charts.machineDay.destroy()}catch(e){}}
+  if(state.charts.machinePie){try{state.charts.machinePie.destroy()}catch{}}
+  if(state.charts.machineCause){try{state.charts.machineCause.destroy()}catch{}}
+  if(state.charts.machineDay){try{state.charts.machineDay.destroy()}catch{}}
   const pieCtx=document.getElementById('machineDowntimePie');
   if(pieCtx){
     state.charts.machinePie=new Chart(pieCtx,{type:'doughnut',data:{labels:['Parado %','Operativo %'],datasets:[{data:[+pctOff.toFixed(2),+pctOn.toFixed(2)],backgroundColor:['#ef4444','#22c55e']}]},options:{responsive:true,maintainAspectRatio:false}});

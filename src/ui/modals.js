@@ -185,5 +185,5 @@ export function savePart(){
 
 export function exportData(){const blob=new Blob([JSON.stringify(state.db,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='SL_CMMS_backup.json';a.click();URL.revokeObjectURL(a.href);toast('JSON exportado')}
 
-export function importData(e){const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=()=>{try{state.db=JSON.parse(r.result);save();render();toast('Datos importados')}catch(err){toast('Archivo inválido','err')}};r.readAsText(file)}
+export function importData(e){const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=()=>{try{state.db=JSON.parse(r.result);save();render();toast('Datos importados')}catch{toast('Archivo inválido','err')}};r.readAsText(file)}
 

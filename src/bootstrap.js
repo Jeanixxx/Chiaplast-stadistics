@@ -97,5 +97,5 @@ document.addEventListener('keydown',e=>{
 
 // Snapshot inicial para undo
 
-try{ state._prevDbJson=JSON.stringify(state.db); }catch(e){}
+try{ state._prevDbJson=JSON.stringify(state.db); }catch{}
 
